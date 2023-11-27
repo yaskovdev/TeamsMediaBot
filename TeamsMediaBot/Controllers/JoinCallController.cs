@@ -19,10 +19,10 @@ public class JoinCallController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("/api/join-call")]
-    public async Task Get()
+    [HttpPost("/api/join-call-requests")]
+    public async Task Get([FromBody] JoinCallRequest request)
     {
-        var videoSocket = await _service.JoinCall(new Uri("https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDA1NDJjZDgtNDRhYy00MGY4LWE2YzQtMjI1YzFlNTAzYzMw%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22b1b11b68-1839-4792-a462-1854254ddfe8%22%2c%22MessageId%22%3a%220%22%7d"));
+        var videoSocket = await _service.JoinCall(new Uri(request.JoinUrl));
         videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         long timestamp = 0;
         while (true)
