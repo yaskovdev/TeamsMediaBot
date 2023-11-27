@@ -27,8 +27,10 @@ public class AuthenticationProvider : IRequestAuthenticationProvider
 
     public async Task AuthenticateOutboundRequestAsync(HttpRequestMessage request, string tenant)
     {
-        var tenantId = ImmutableList.Create(_tenantId, tenant, "common").First(it => !string.IsNullOrWhiteSpace(it));
-        var authority = string.Format(CultureInfo.InvariantCulture, Authority, tenantId);
+        var authority = ImmutableList.Create(_tenantId, tenant, "common")
+            .Where(it => !string.IsNullOrWhiteSpace(it))
+            .Select(it => string.Format(CultureInfo.InvariantCulture, Authority, it))
+            .First();
         var credential = new ClientCredential(_appId, _appSecret);
         var result = await AcquireToken(authority, _appResource, credential);
         request.Headers.Authorization = new AuthenticationHeaderValue(Scheme, result.AccessToken);
