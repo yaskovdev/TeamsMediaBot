@@ -9,7 +9,7 @@ version: "2"
 region: us
 tunnels:
   signalling:
-    addr: 80
+    addr: 5228
     proto: http
   media:
     addr: 8445
@@ -55,3 +55,9 @@ run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 
 Convert a video to packets using `ffmpeg -i Recording.mp4 -pix_fmt nv12 %07d.raw`. Make sure the Recording.mp4 is
 1920x1080.
+
+## API
+
+```shell
+curl -v -H 'Content-Type: application/json' http://localhost:5228/api/calls -d '{ "key": "value" }'
+```

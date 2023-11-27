@@ -27,8 +27,6 @@ if (app.Environment.IsEnvironment("Local") || app.Environment.IsEnvironment(Envi
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
