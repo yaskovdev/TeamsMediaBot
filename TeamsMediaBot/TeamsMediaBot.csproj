@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.WebApiCompatShim" Version="2.2.0" />
         <PackageReference Include="Microsoft.Skype.Bots.Media.Library" Version="1.27.0.187" />
         <PackageReference Include="Microsoft.Skype.Graph.Communications.Client" Version="1.2.0.8841" />
         <PackageReference Include="Microsoft.Skype.Graph.Communications.Calls.Media" Version="1.2.0.8841" />

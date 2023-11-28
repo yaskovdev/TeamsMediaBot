@@ -1,6 +1,7 @@
 namespace TeamsMediaBot.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 using Microsoft.Skype.Bots.Media;
 using Services;
 
@@ -52,12 +53,10 @@ public class JoinCallController : ControllerBase
     }
 
     [HttpPost("/api/calls")]
-    public async Task HandleCallNotification()
+    public async Task<HttpResponseMessage> ProcessCallNotification()
     {
-        var request = Request.Body;
-        using var streamReader = new StreamReader(request);
-        var json = await streamReader.ReadToEndAsync();
-        _logger.LogInformation("Got call notification: {Content}", json);
+        var httpRequestMessageFeature = new HttpRequestMessageFeature(Request.HttpContext);
+        return await _service.ProcessCallNotification(httpRequestMessageFeature.HttpRequestMessage);
     }
 
     private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args)

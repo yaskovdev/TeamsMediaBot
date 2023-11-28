@@ -63,4 +63,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService
         await _communicationsClient.Calls().AddAsync(joinParams, Guid.NewGuid());
         return mediaSession.VideoSockets[0];
     }
+
+    public async Task<HttpResponseMessage> ProcessCallNotification(HttpRequestMessage notification) =>
+        await _communicationsClient.ProcessNotificationAsync(notification);
 }
