@@ -9,6 +9,7 @@ using Microsoft.Graph.Communications.Calls.Media;
 using Microsoft.Graph.Communications.Client;
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common.Telemetry;
+using Microsoft.Graph.Communications.Resources;
 using Microsoft.Skype.Bots.Media;
 
 public class TeamsMediaBotService : ITeamsMediaBotService
@@ -17,11 +18,12 @@ public class TeamsMediaBotService : ITeamsMediaBotService
 
     private readonly IJoinUrlParser _joinUrlParser;
     private readonly ICommunicationsClient _communicationsClient;
+    private readonly ILogger<TeamsMediaBotService> _logger;
 
     private readonly ConcurrentDictionary<string, StreamingSession> _callIdToStreamingSession = new();
 
-    public TeamsMediaBotService(IConfiguration config, IJoinUrlParser joinUrlParser, IRequestAuthenticationProvider requestAuthenticationProvider,
-        IMediaPlatformLogger mediaPlatformLogger, IGraphLogger graphLogger)
+    public TeamsMediaBotService(IConfiguration config, IJoinUrlParser joinUrlParser, ILogger<TeamsMediaBotService> logger,
+        IRequestAuthenticationProvider requestAuthenticationProvider, IMediaPlatformLogger mediaPlatformLogger, IGraphLogger graphLogger)
     {
         var publicMediaUrl = new Uri(config["PublicMediaUrl"]);
         var mediaPlatformSettings = new MediaPlatformSettings
@@ -44,6 +46,20 @@ public class TeamsMediaBotService : ITeamsMediaBotService
             .SetAuthenticationProvider(requestAuthenticationProvider)
             .SetMediaPlatformSettings(mediaPlatformSettings)
             .Build();
+        _communicationsClient.Calls().OnUpdated += OnUpdated;
+        _logger = logger;
+    }
+
+    private async void OnUpdated(ICallCollection sender, CollectionEventArgs<ICall> e)
+    {
+        foreach (var call in e.RemovedResources)
+        {
+            if (_callIdToStreamingSession.TryRemove(call.Id, out var session))
+            {
+                _logger.LogInformation("Disposing session with call ID {Id}", call.Id);
+                await session.DisposeAsync();
+            }
+        }
     }
 
     public async Task<ICall> JoinCall(Uri joinUrl)

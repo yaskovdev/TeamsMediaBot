@@ -2,7 +2,6 @@ namespace TeamsMediaBot.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
-using Microsoft.Graph.Communications.Calls;
 using Services;
 
 [ApiController]
@@ -16,7 +15,15 @@ public class JoinCallController : ControllerBase
     }
 
     [HttpPost("/api/join-call-requests")]
-    public async Task<ICall> Get([FromBody] JoinCallRequest request) => await _service.JoinCall(new Uri(request.JoinUrl));
+    public async Task<Dictionary<string, string>> Get([FromBody] JoinCallRequest request)
+    {
+        var call = await _service.JoinCall(new Uri(request.JoinUrl));
+        return new Dictionary<string, string>
+        {
+            { "callId", call.Id },
+            { "scenarioId", call.ScenarioId.ToString() }
+        };
+    }
 
     [HttpPost("/api/calls")]
     public async Task<HttpResponseMessage> ProcessCallNotification()

@@ -32,7 +32,7 @@ public class StreamingSession : IAsyncDisposable
         await Task.WhenAll(_videoSocketActive.Task, _audioSocketActive.Task);
         while (true)
         {
-            var frame = _demuxer.ReadFrame();
+            var frame = _demuxer.ReadFrame(); // TODO: can be called after _demuxer.Dispose() and cause an exception
             if (frame.Data.Count == 0)
             {
                 break;
