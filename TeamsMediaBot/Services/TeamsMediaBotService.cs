@@ -22,7 +22,8 @@ public class TeamsMediaBotService : ITeamsMediaBotService
     private readonly Thread _browserThread;
     private readonly ILogger<TeamsMediaBotService> _logger;
 
-    private static bool _ready;
+    private static bool _videoSocketReady;
+    private static bool _audioSocketReady;
 
     public TeamsMediaBotService(IConfiguration config, IJoinUrlParser joinUrlParser, IDemuxer demuxer, IRequestAuthenticationProvider requestAuthenticationProvider,
         IMediaPlatformLogger mediaPlatformLogger, IGraphLogger graphLogger, ILogger<TeamsMediaBotService> logger)
@@ -75,9 +76,11 @@ public class TeamsMediaBotService : ITeamsMediaBotService
         var mediaSession = _communicationsClient.CreateMediaSession(audioSocketSettings, videoSocketSettings);
         var videoSocket = mediaSession.VideoSockets[0];
         videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
+        var audioSocket = mediaSession.AudioSocket;
+        audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession);
         await _communicationsClient.Calls().AddAsync(joinParams, Guid.NewGuid());
-        while (!_ready)
+        while (!_videoSocketReady || !_audioSocketReady)
         {
             _logger.LogInformation("Waiting to start the browser");
             Thread.Sleep(500);
@@ -90,7 +93,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService
             {
                 break;
             }
-            Console.WriteLine($"Extracted frame of type {frame.Type} with size {frame.Data.Count} and timestamp {frame.Timestamp}");
+            _logger.LogInformation("Extracted frame of type {Type} with size {Size} and timestamp {Timestamp}", frame.Type, frame.Data.Count, frame.Timestamp);
             if (frame.Type == FrameType.Video)
             {
                 videoSocket.Send(new VideoBuffer(frame.Data.ToArray(), frame.Timestamp.Ticks));
@@ -103,7 +106,13 @@ public class TeamsMediaBotService : ITeamsMediaBotService
 
     private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args)
     {
-        _logger.LogInformation("New socket status: {Status}", args.MediaSendStatus);
-        _ready = args.MediaSendStatus == MediaSendStatus.Active;
+        _logger.LogInformation("New video socket status: {Status}", args.MediaSendStatus);
+        _videoSocketReady = args.MediaSendStatus == MediaSendStatus.Active;
+    }
+
+    private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
+    {
+        _logger.LogInformation("New audio socket status: {Status}", args.MediaSendStatus);
+        _audioSocketReady = args.MediaSendStatus == MediaSendStatus.Active;
     }
 }

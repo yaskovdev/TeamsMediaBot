@@ -2,7 +2,7 @@
 
 public class BlockingStream
 {
-    private const int MaxSize = 512 * 1024 * 1024;
+    private const int MaxSize = 4 * 1024 * 1024;
 
     private readonly object _lock = new();
     private readonly byte[] _buffer = new byte[MaxSize];
