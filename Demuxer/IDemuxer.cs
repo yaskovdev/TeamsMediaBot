@@ -1,8 +1,6 @@
 ﻿namespace Demuxer;
 
-public interface IDemuxer
+public interface IDemuxer : IDisposable
 {
-    void WritePacket(byte[] packet);
-
     Frame ReadFrame();
 }

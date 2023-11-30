@@ -12,18 +12,11 @@ public class StreamingBrowser : IStreamingBrowser
 
     private const string ChromeExecutablePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
-    private readonly IDemuxer _demuxer;
-
-    public StreamingBrowser(IDemuxer demuxer)
-    {
-        _demuxer = demuxer;
-    }
-
-    public async Task Start()
+    public async Task<IBrowser> LaunchInstance(IBlockingStream stream)
     {
         Console.WriteLine("Starting...");
 
-        await using var browser = await Puppeteer.LaunchAsync(ChromeLaunchOptions(ChromeExecutablePath));
+        var browser = await Puppeteer.LaunchAsync(ChromeLaunchOptions(ChromeExecutablePath));
         var extensionTarget = await browser.WaitForTargetAsync(IsExtensionBackgroundPage);
         var extensionPage = await extensionTarget.PageAsync();
 
@@ -37,12 +30,13 @@ public class StreamingBrowser : IStreamingBrowser
         await extensionPage.ExposeFunctionAsync<string, Task>("sendData", async data =>
         {
             Console.WriteLine($"Captured {data.Length / (double)1024:0.00} KB of media from the browser");
-            _demuxer.WritePacket(ToByteArray(data));
+            stream.Write(ToByteArray(data));
+            await Task.CompletedTask;
         });
 
         await capturingService.StartCapturing();
 
-        await Task.Delay(Timeout.Infinite);
+        return browser;
     }
 
     private static LaunchOptions ChromeLaunchOptions(string chromeExecutablePath)

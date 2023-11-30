@@ -3,26 +3,22 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-public class Demuxer : IDemuxer, IDisposable
+public class Demuxer : IDemuxer
 {
     private static readonly Frame EmptyFrame = new(FrameType.Video, 0, TimeSpan.Zero, Array.Empty<byte>());
 
-    private readonly BlockingStream _stream = new();
+    private readonly IBlockingStream _stream;
 
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable", Justification = "The callback scope must be bigger than the scope of the native demuxer")]
     private readonly Callback _callback;
 
     private readonly IntPtr _demuxer;
 
-    public Demuxer()
+    public Demuxer(IBlockingStream stream)
     {
+        _stream = stream;
         _callback = Callback;
         _demuxer = NativeDemuxerApi.CreateDemuxer(_callback);
-    }
-
-    public void WritePacket(byte[] packet)
-    {
-        _stream.Write(packet);
     }
 
     /// <summary>

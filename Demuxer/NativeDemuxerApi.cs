@@ -3,8 +3,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
+internal delegate int Callback(IntPtr message, int size);
+
 [SuppressMessage("ReSharper", "UnassignedGetOnlyAutoProperty", Justification = "Set up in native code")]
-public struct FrameMetadata
+internal struct FrameMetadata
 {
     public FrameType Type { get; }
 

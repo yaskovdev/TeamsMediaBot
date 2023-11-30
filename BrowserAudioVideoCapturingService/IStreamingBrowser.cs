@@ -1,6 +1,9 @@
 ﻿namespace BrowserAudioVideoCapturingService;
 
+using Demuxer;
+using PuppeteerSharp;
+
 public interface IStreamingBrowser
 {
-    public Task Start();
+    public Task<IBrowser> LaunchInstance(IBlockingStream stream);
 }
