@@ -13,7 +13,7 @@ using Microsoft.Skype.Bots.Media;
 
 public class TeamsMediaBotService : ITeamsMediaBotService
 {
-    private static readonly IList<VideoFormat> SupportedSendVideoFormats = ImmutableList.Create(VideoFormat.NV12_1920x1080_30Fps);
+    private static readonly IList<VideoFormat> SupportedSendVideoFormats = ImmutableList.Create(VideoFormat.NV12_1920x1080_15Fps);
 
     private readonly IJoinUrlParser _joinUrlParser;
     private readonly IDemuxer _demuxer;
@@ -68,7 +68,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService
         var videoSocketSettings = new VideoSocketSettings
         {
             StreamDirections = StreamDirection.Sendonly,
-            ReceiveColorFormat = VideoColorFormat.H264,
+            ReceiveColorFormat = VideoColorFormat.NV12,
             SupportedSendVideoFormats = SupportedSendVideoFormats
         };
         var mediaSession = _communicationsClient.CreateMediaSession(audioSocketSettings, videoSocketSettings);

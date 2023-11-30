@@ -13,7 +13,7 @@ public class VideoBuffer : VideoMediaBuffer
         Data = _handle.AddrOfPinnedObject();
         Length = buffer.Length;
         Timestamp = timestamp;
-        VideoFormat = VideoFormat.NV12_1920x1080_30Fps; // TODO: use H.264 (check older version of README.md how to get the test data)
+        VideoFormat = VideoFormat.NV12_1920x1080_15Fps; // TODO: use H.264 (check older version of README.md how to get the test data)
     }
 
     protected override void Dispose(bool disposing)
