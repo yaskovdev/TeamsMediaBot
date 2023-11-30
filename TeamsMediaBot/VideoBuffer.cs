@@ -20,7 +20,7 @@ public class VideoBuffer : VideoMediaBuffer
     {
         if (disposing)
         {
-            _handle.Free();
+            // _handle.Free();
         }
     }
 }

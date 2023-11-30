@@ -1,5 +1,6 @@
 ﻿namespace TeamsMediaBot;
 
+using System.Collections.Immutable;
 using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Calls.Media;
@@ -10,9 +11,9 @@ public class StreamingSession : IAsyncDisposable
 {
     private readonly Task<IBrowser> _launchBrowserTask;
     private readonly IDemuxer _demuxer;
-    private readonly TaskCompletionSource<bool> _videoSocketActive = new();
-    private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly IVideoSocket _videoSocket;
+    private AudioVideoFramePlayer? _player;
+    private readonly IList<VideoMediaBuffer> _videoBuffers = new List<VideoMediaBuffer>();
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
@@ -24,12 +25,11 @@ public class StreamingSession : IAsyncDisposable
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         var audioSocket = mediaSession.AudioSocket;
         audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
-        _ = StartStreaming();
+        StartStreaming();
     }
 
-    private async Task StartStreaming()
+    private void StartStreaming()
     {
-        await Task.WhenAll(_videoSocketActive.Task, _audioSocketActive.Task);
         while (true)
         {
             var frame = _demuxer.ReadFrame(); // TODO: can be called after _demuxer.Dispose() and cause an exception
@@ -39,7 +39,7 @@ public class StreamingSession : IAsyncDisposable
             }
             if (frame.Type == FrameType.Video)
             {
-                _videoSocket.Send(new VideoBuffer(frame.Data.ToArray(), frame.Timestamp.Ticks));
+                _videoBuffers.Add(new VideoBuffer(frame.Data.ToArray(), frame.Timestamp.Ticks));
             }
         }
     }
@@ -55,7 +55,11 @@ public class StreamingSession : IAsyncDisposable
     {
         if (args.MediaSendStatus == MediaSendStatus.Active)
         {
-            _videoSocketActive.TrySetResult(true);
+            Thread.Sleep(1000);
+            var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 1000);
+            _player = new AudioVideoFramePlayer(null, (VideoSocket)_videoSocket, playerSettings);
+            _player.LowOnFrames += OnLowOnFrames;
+            _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, _videoBuffers);
         }
     }
 
@@ -63,7 +67,11 @@ public class StreamingSession : IAsyncDisposable
     {
         if (args.MediaSendStatus == MediaSendStatus.Active)
         {
-            _audioSocketActive.TrySetResult(true);
         }
+    }
+
+    private void OnLowOnFrames(object? sender, LowOnFramesEventArgs e)
+    {
+        _ = _player?.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, _videoBuffers);
     }
 }
