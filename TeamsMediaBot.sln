@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demuxer", "Demuxer\Demuxer.csproj", "{D5014AF0-08F0-4968-A5E7-6701B3BFC108}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeDemuxer", "NativeDemuxer\NativeDemuxer.vcxproj", "{0266CB48-3B98-4432-AB6B-ECBDAC445A42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -17,5 +21,13 @@ Global
 		{4371314D-1ECC-491A-9981-D2A89EC84B3B}.Debug|x64.Build.0 = Debug|x64
 		{4371314D-1ECC-491A-9981-D2A89EC84B3B}.Release|x64.ActiveCfg = Release|x64
 		{4371314D-1ECC-491A-9981-D2A89EC84B3B}.Release|x64.Build.0 = Release|x64
+		{D5014AF0-08F0-4968-A5E7-6701B3BFC108}.Debug|x64.ActiveCfg = Debug|x64
+		{D5014AF0-08F0-4968-A5E7-6701B3BFC108}.Debug|x64.Build.0 = Debug|x64
+		{D5014AF0-08F0-4968-A5E7-6701B3BFC108}.Release|x64.ActiveCfg = Release|x64
+		{D5014AF0-08F0-4968-A5E7-6701B3BFC108}.Release|x64.Build.0 = Release|x64
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Debug|x64.ActiveCfg = Debug|x64
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Debug|x64.Build.0 = Debug|x64
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Release|x64.ActiveCfg = Release|x64
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

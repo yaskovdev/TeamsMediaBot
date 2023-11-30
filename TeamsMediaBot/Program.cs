@@ -1,3 +1,4 @@
+using Demuxer;
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using Microsoft.Skype.Bots.Media;
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddSingleton<IJoinUrlParser, JoinUrlParser>();
+builder.Services.AddSingleton<IDemuxer, Demuxer.Demuxer>();
 builder.Services.AddSingleton<IRequestAuthenticationProvider, AuthenticationProvider>();
 builder.Services.AddSingleton<IMediaPlatformLogger, MediaPlatformLogger>();
 builder.Services.AddSingleton<IGraphLogger, GraphLogger>();
