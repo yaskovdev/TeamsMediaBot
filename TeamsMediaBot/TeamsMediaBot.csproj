@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\BrowserAudioVideoCapturingService\BrowserAudioVideoCapturingService.csproj" />
         <ProjectReference Include="..\Demuxer\Demuxer.csproj" />
     </ItemGroup>
 

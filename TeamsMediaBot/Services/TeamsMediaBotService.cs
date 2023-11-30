@@ -3,6 +3,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Net;
+using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Calls;
 using Microsoft.Graph.Communications.Calls.Media;
@@ -49,10 +50,10 @@ public class TeamsMediaBotService : ITeamsMediaBotService
             .SetAuthenticationProvider(requestAuthenticationProvider)
             .SetMediaPlatformSettings(mediaPlatformSettings)
             .Build();
-        _browserThread = new Thread(() =>
+        _browserThread = new Thread(async () =>
         {
-            var simulator = new BrowserSimulator(_demuxer);
-            simulator.StartProducingMedia();
+            var simulator = new StreamingBrowser(_demuxer);
+            await simulator.Start();
         });
     }
 

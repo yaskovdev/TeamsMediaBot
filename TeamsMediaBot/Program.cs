@@ -1,3 +1,4 @@
+using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common.Telemetry;
@@ -10,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddSingleton<IJoinUrlParser, JoinUrlParser>();
+builder.Services.AddSingleton<IStreamingBrowser, StreamingBrowser>();
 builder.Services.AddSingleton<IDemuxer, Demuxer.Demuxer>();
 builder.Services.AddSingleton<IRequestAuthenticationProvider, AuthenticationProvider>();
 builder.Services.AddSingleton<IMediaPlatformLogger, MediaPlatformLogger>();

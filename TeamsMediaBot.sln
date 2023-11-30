@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demuxer", "Demuxer\Demuxer.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeDemuxer", "NativeDemuxer\NativeDemuxer.vcxproj", "{0266CB48-3B98-4432-AB6B-ECBDAC445A42}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrowserAudioVideoCapturingService", "BrowserAudioVideoCapturingService\BrowserAudioVideoCapturingService.csproj", "{D7532225-0D02-490D-9414-376B816138A1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -29,5 +31,9 @@ Global
 		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Debug|x64.Build.0 = Debug|x64
 		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Release|x64.ActiveCfg = Release|x64
 		{0266CB48-3B98-4432-AB6B-ECBDAC445A42}.Release|x64.Build.0 = Release|x64
+		{D7532225-0D02-490D-9414-376B816138A1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D7532225-0D02-490D-9414-376B816138A1}.Debug|x64.Build.0 = Debug|Any CPU
+		{D7532225-0D02-490D-9414-376B816138A1}.Release|x64.ActiveCfg = Release|Any CPU
+		{D7532225-0D02-490D-9414-376B816138A1}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
