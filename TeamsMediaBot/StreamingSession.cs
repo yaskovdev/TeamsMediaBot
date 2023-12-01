@@ -6,6 +6,7 @@ using Demuxer;
 using Microsoft.Graph.Communications.Calls.Media;
 using Microsoft.Skype.Bots.Media;
 using PuppeteerSharp;
+using Frame = Demuxer.Frame;
 
 public class StreamingSession : IAsyncDisposable
 {
@@ -42,7 +43,7 @@ public class StreamingSession : IAsyncDisposable
             }
             if (frame.Type == FrameType.Video)
             {
-                await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(new VideoBuffer(frame.Data.ToArray(), frame.Timestamp.Ticks)));
+                await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(Map(frame)));
             }
         }
     }
@@ -68,4 +69,7 @@ public class StreamingSession : IAsyncDisposable
         {
         }
     }
+
+    private static VideoSendBuffer Map(Frame frame) =>
+        new(frame.Data.ToArray(), (uint)frame.Data.Count, VideoFormat.NV12_1920x1080_15Fps, frame.Timestamp.Ticks);
 }
