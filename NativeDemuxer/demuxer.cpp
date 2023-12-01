@@ -183,7 +183,8 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
 int demuxer::read_packet(void* opaque, uint8_t* dst_buffer, const int dst_buffer_size)
 {
     const callback* c = static_cast<callback*>(opaque);
-    return (*c)(dst_buffer, dst_buffer_size);
+    const int size = (*c)(dst_buffer, dst_buffer_size);
+    return size == -1 ? AVERROR_EOF : size;
 }
 
 int demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type)

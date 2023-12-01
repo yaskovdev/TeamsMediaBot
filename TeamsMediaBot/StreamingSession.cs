@@ -11,17 +11,20 @@ using Frame = Demuxer.Frame;
 public class StreamingSession : IAsyncDisposable
 {
     private readonly Task<IBrowser> _launchBrowserTask;
+    private readonly IBlockingStream _stream;
     private readonly IDemuxer _demuxer;
     private readonly IVideoSocket _videoSocket;
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private int _disposed;
     private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
-        var stream = new BlockingStream();
+        _stream = new BlockingStream();
         var streamingBrowser = new StreamingBrowser();
-        _launchBrowserTask = streamingBrowser.LaunchInstance(stream);
-        _demuxer = new Demuxer(stream);
+        _launchBrowserTask = streamingBrowser.LaunchInstance(_stream);
+        _demuxer = new Demuxer(_stream);
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         var audioSocket = mediaSession.AudioSocket;
@@ -37,23 +40,44 @@ public class StreamingSession : IAsyncDisposable
         _player.LowOnFrames += OnLowOnFrames;
         while (true)
         {
-            var frame = _demuxer.ReadFrame(); // TODO: can be called after _demuxer.Dispose() and cause an exception
-            if (frame.Data.Count == 0)
+            try
             {
-                break;
+                await _semaphore.WaitAsync(); // TODO: test how it performs against normal lock and no lock at all
+                if (_disposed == 0)
+                {
+                    var frame = _demuxer.ReadFrame();
+                    if (frame.Type == FrameType.Video)
+                    {
+                        await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(Map(frame)));
+                    }
+                }
+                else
+                {
+                    return;
+                }
             }
-            if (frame.Type == FrameType.Video)
+            finally
             {
-                await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(Map(frame)));
+                _semaphore.Release();
             }
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        _demuxer.Dispose();
-        var browser = await _launchBrowserTask;
-        await browser.DisposeAsync();
+        try
+        {
+            await _semaphore.WaitAsync();
+            _stream.Dispose();
+            _demuxer.Dispose();
+            var browser = await _launchBrowserTask;
+            await browser.DisposeAsync();
+        }
+        finally
+        {
+            _disposed = 1;
+            _semaphore.Release();
+        }
     }
 
     private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args)
