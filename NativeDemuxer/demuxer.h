@@ -24,8 +24,6 @@ public:
 
     int read_frame(uint8_t* decoded_data, frame_metadata* metadata);
 
-    ~demuxer();
-
 private:
     bool initialized_;
     callback callback_;

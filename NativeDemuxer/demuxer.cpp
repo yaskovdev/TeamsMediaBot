@@ -180,11 +180,6 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
     }
 }
 
-demuxer::~demuxer()
-{
-    std::cout << "Demuxer destructor called" << "\n";
-}
-
 int demuxer::read_packet(void* opaque, uint8_t* dst_buffer, const int dst_buffer_size)
 {
     const callback* c = static_cast<callback*>(opaque);

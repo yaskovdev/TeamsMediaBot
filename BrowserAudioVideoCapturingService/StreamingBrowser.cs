@@ -49,7 +49,7 @@ public class StreamingBrowser : IStreamingBrowser
             $"--load-extension={extensionPath}",
             $"--disable-extensions-except={extensionPath}",
             $"--allowlisted-extension-id={ExtensionId}",
-            // "--headless=new",
+            "--headless=new",
             "--hide-scrollbars"
         };
         return new LaunchOptions { Headless = false, Args = browserArgs, ExecutablePath = chromeExecutablePath };

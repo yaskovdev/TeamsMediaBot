@@ -34,6 +34,7 @@ public class StreamingSession : IAsyncDisposable
         await _videoSocketActive.Task;
         var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 1000);
         _player = new AudioVideoFramePlayer(null, (VideoSocket)_videoSocket, playerSettings);
+        _player.LowOnFrames += OnLowOnFrames;
         while (true)
         {
             var frame = _demuxer.ReadFrame(); // TODO: can be called after _demuxer.Dispose() and cause an exception
@@ -68,6 +69,11 @@ public class StreamingSession : IAsyncDisposable
         if (args.MediaSendStatus == MediaSendStatus.Active)
         {
         }
+    }
+
+    private static void OnLowOnFrames(object? sender, LowOnFramesEventArgs e)
+    {
+        Console.WriteLine($"Player is low on {e.MediaType} frames, remaining media length in ms is {e.RemainingMediaLengthInMS}");
     }
 
     private static VideoSendBuffer Map(Frame frame) =>
