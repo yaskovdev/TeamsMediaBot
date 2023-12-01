@@ -1,7 +1,6 @@
 ﻿namespace Demuxer;
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 
 public class Demuxer : IDemuxer
 {
@@ -37,10 +36,5 @@ public class Demuxer : IDemuxer
         NativeDemuxerApi.DeleteDemuxer(_demuxer);
     }
 
-    private int Callback(IntPtr buffer, int size)
-    {
-        var bytes = _stream.Read(size);
-        Marshal.Copy(bytes, 0, buffer, bytes.Length);
-        return bytes.Length;
-    }
+    private int Callback(IntPtr buffer, int size) => _stream.Read(buffer, size);
 }

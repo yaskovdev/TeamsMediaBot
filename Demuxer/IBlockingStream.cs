@@ -4,5 +4,5 @@ public interface IBlockingStream
 {
     void Write(byte[] packet);
 
-    byte[] Read(int size);
+    int Read(IntPtr buffer, int size);
 }

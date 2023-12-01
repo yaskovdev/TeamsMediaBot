@@ -1,5 +1,7 @@
 ﻿namespace Demuxer;
 
+using System.Runtime.InteropServices;
+
 public class BlockingStream : IBlockingStream
 {
     private const int MaxSize = 4 * 1024 * 1024;
@@ -26,7 +28,7 @@ public class BlockingStream : IBlockingStream
         }
     }
 
-    public byte[] Read(int size)
+    public int Read(IntPtr buffer, int size)
     {
         lock (_lock)
         {
@@ -35,11 +37,10 @@ public class BlockingStream : IBlockingStream
                 Monitor.Wait(_lock); // TODO: do not wait if nobody is writing
             }
             var numberOfBytesToCopy = Math.Min(_buffer_size - _offset, size);
-            var result = new byte[numberOfBytesToCopy];
-            Array.Copy(_buffer, _offset, result, 0, numberOfBytesToCopy);
+            Marshal.Copy(_buffer, _offset, buffer, numberOfBytesToCopy);
             _offset += numberOfBytesToCopy;
             Monitor.PulseAll(_lock);
-            return result;
+            return numberOfBytesToCopy;
         }
     }
 }
