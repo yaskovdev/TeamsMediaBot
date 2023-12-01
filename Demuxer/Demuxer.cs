@@ -4,10 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 
 public class Demuxer : IDemuxer
 {
-    private static readonly Frame EmptyFrame = new(FrameType.Video, 0, TimeSpan.Zero, Array.Empty<byte>());
-
-    private readonly IBlockingStream _stream;
-
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable", Justification = "The callback scope must be bigger than the scope of the native demuxer")]
     private readonly Callback _callback;
 
@@ -15,8 +11,7 @@ public class Demuxer : IDemuxer
 
     public Demuxer(IBlockingStream stream)
     {
-        _stream = stream;
-        _callback = Callback;
+        _callback = stream.Read;
         _demuxer = NativeDemuxerApi.CreateDemuxer(_callback);
     }
 
@@ -27,14 +22,12 @@ public class Demuxer : IDemuxer
     {
         var data = new byte[1920 * 1080 * 3 / 2]; // TODO: check the size and do not hardcode
         var metadata = new FrameMetadata();
-        var status = NativeDemuxerApi.ReadFrame(_demuxer, data, ref metadata);
-        return status == 0 ? new Frame(metadata.Type, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp), data) : EmptyFrame;
+        NativeDemuxerApi.ReadFrame(_demuxer, data, ref metadata);
+        return new Frame(metadata.Type, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp), data);
     }
 
     public void Dispose()
     {
         NativeDemuxerApi.DeleteDemuxer(_demuxer);
     }
-
-    private int Callback(IntPtr buffer, int size) => _stream.Read(buffer, size);
 }

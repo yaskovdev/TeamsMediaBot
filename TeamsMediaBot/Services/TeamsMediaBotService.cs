@@ -12,7 +12,7 @@ using Microsoft.Graph.Communications.Common.Telemetry;
 using Microsoft.Graph.Communications.Resources;
 using Microsoft.Skype.Bots.Media;
 
-public class TeamsMediaBotService : ITeamsMediaBotService
+public class TeamsMediaBotService : ITeamsMediaBotService, IDisposable
 {
     private static readonly IList<VideoFormat> SupportedSendVideoFormats = ImmutableList.Create(VideoFormat.NV12_1920x1080_15Fps);
 
@@ -86,4 +86,10 @@ public class TeamsMediaBotService : ITeamsMediaBotService
 
     public async Task<HttpResponseMessage> ProcessCallNotification(HttpRequestMessage notification) =>
         await _communicationsClient.ProcessNotificationAsync(notification);
+
+    public void Dispose()
+    {
+        _communicationsClient.Dispose();
+        _logger.LogInformation("Disposed of Teams media bot service");
+    }
 }
