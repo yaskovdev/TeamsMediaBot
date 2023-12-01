@@ -9,9 +9,9 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
-demuxer::demuxer(const callback callback): initialized_(false), callback_(callback), fmt_ctx_(nullptr),
-    frame_(nullptr), pkt_(nullptr), width_(0), height_(0), pix_fmt_(AV_PIX_FMT_NONE), video_dst_bufsize_(0), video_dst_data_{}, video_dst_linesize_{},
-    audio_stream_idx_(-1), video_stream_idx_(-1), audio_dec_ctx_(nullptr), video_dec_ctx_(nullptr), decoder_needs_packet_(true), current_stream_index_(-1)
+demuxer::demuxer(const callback callback): initialized_(false), callback_(callback), fmt_ctx_(nullptr), frame_(nullptr), pkt_(nullptr), width_(0), height_(0),
+    pix_fmt_(AV_PIX_FMT_NONE), video_dst_bufsize_(0), video_dst_data_{}, video_dst_linesize_{}, audio_stream_idx_(-1), video_stream_idx_(-1),
+    audio_dec_ctx_(nullptr), video_dec_ctx_(nullptr), sws_context_(nullptr), decoder_needs_packet_(true), current_stream_index_(-1)
 {
     std::cout << "Demuxer created" << "\n";
 }
@@ -72,7 +72,8 @@ int demuxer::initialize()
         width_ = video_dec_ctx_->width;
         height_ = video_dec_ctx_->height;
         pix_fmt_ = video_dec_ctx_->pix_fmt;
-        const int ret = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, pix_fmt_, 1);
+        sws_context_ = sws_getContext(width_, height_, pix_fmt_, width_, height_, AV_PIX_FMT_NV12, SWS_BILINEAR, nullptr, nullptr, nullptr);
+        const int ret = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, AV_PIX_FMT_NV12, 1);
         if (ret < 0)
         {
             fprintf(stderr, "Could not allocate raw video buffer\n");
@@ -158,8 +159,9 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
         }
         else if (pkt_->stream_index == video_stream_idx_)
         {
-            const int buffer_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width_, height_, 1);
-            if (av_image_copy_to_buffer(decoded_data, buffer_size, frame_->data, frame_->linesize, AV_PIX_FMT_YUV420P, width_, height_, 1) < 0)
+            sws_scale(sws_context_, frame_->data, frame_->linesize, 0, frame_->height, video_dst_data_, video_dst_linesize_);
+            const int buffer_size = av_image_get_buffer_size(AV_PIX_FMT_NV12, width_, height_, 1);
+            if (av_image_copy_to_buffer(decoded_data, buffer_size, video_dst_data_, video_dst_linesize_, AV_PIX_FMT_NV12, width_, height_, 1) < 0)
             {
                 exit(1);
             }

@@ -6,7 +6,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libavutil/samplefmt.h>
+#include <libswscale/swscale.h>
 }
 
 struct buffer_data
@@ -40,6 +40,7 @@ private:
     int video_stream_idx_;
     AVCodecContext* audio_dec_ctx_;
     AVCodecContext* video_dec_ctx_;
+    SwsContext* sws_context_;
     bool decoder_needs_packet_;
     int current_stream_index_;
 
