@@ -50,6 +50,10 @@ public class StreamingSession : IAsyncDisposable
                     {
                         await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(Map(frame)));
                     }
+                    else
+                    {
+                        frame.Dispose();
+                    }
                 }
                 else
                 {
@@ -102,6 +106,5 @@ public class StreamingSession : IAsyncDisposable
         Console.WriteLine($"Player is low on {e.MediaType} frames, remaining media length in ms is {e.RemainingMediaLengthInMS}");
     }
 
-    private static VideoSendBuffer Map(Frame frame) =>
-        new(frame.Data.ToArray(), (uint)frame.Data.Count, VideoFormat.NV12_1920x1080_15Fps, frame.Timestamp.Ticks);
+    private static VideoBuffer Map(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
 }

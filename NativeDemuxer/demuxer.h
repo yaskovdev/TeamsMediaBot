@@ -22,7 +22,7 @@ class demuxer
 public:
     demuxer(callback callback);
 
-    int read_frame(uint8_t* decoded_data, frame_metadata* metadata);
+    uint8_t* read_frame(frame_metadata* metadata);
 
 private:
     bool initialized_;

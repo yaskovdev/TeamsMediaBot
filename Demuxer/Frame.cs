@@ -1,17 +1,22 @@
 ﻿namespace Demuxer;
 
-public class Frame
+public class Frame : IDisposable
 {
     public FrameType Type { get; }
 
     public TimeSpan Timestamp { get; }
 
-    public ArraySegment<byte> Data { get; }
+    public IntPtr Data { get; }
 
-    public Frame(FrameType type, ulong size, TimeSpan timestamp, byte[] data)
+    public ulong Size { get; }
+
+    public Frame(FrameType type, ulong size, TimeSpan timestamp, IntPtr data)
     {
         Type = type;
         Timestamp = timestamp;
-        Data = new ArraySegment<byte>(data, 0, (int)size);
+        Data = data;
+        Size = size;
     }
+
+    public void Dispose() => NativeDemuxerApi.DeleteFrameBuffer(Data);
 }

@@ -112,7 +112,7 @@ int demuxer::initialize()
     return 0;
 }
 
-int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
+uint8_t* demuxer::read_frame(frame_metadata* metadata)
 {
     if (!initialized_)
     {
@@ -125,7 +125,7 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
         else
         {
             std::cout << "Cannot initialize demuxer, not enough data in the buffer, send more data" << "\n";
-            return -1;
+            return nullptr;
         }
     }
 
@@ -135,7 +135,7 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
         {
             if (av_read_frame(fmt_ctx_, pkt_) < 0)
             {
-                return -1;
+                return nullptr;
             }
             current_stream_index_ = pkt_->stream_index;
             if (avcodec_send_packet(current_context(), pkt_) < 0)
@@ -161,23 +161,25 @@ int demuxer::read_frame(uint8_t* decoded_data, frame_metadata* metadata)
         {
             sws_scale(sws_context_, frame_->data, frame_->linesize, 0, frame_->height, video_dst_data_, video_dst_linesize_);
             const int buffer_size = av_image_get_buffer_size(AV_PIX_FMT_NV12, width_, height_, 1);
-            if (av_image_copy_to_buffer(decoded_data, buffer_size, video_dst_data_, video_dst_linesize_, AV_PIX_FMT_NV12, width_, height_, 1) < 0)
+            auto decoded_data = std::make_unique<uint8_t[]>(buffer_size);
+            if (av_image_copy_to_buffer(decoded_data.get(), buffer_size, video_dst_data_, video_dst_linesize_, AV_PIX_FMT_NV12, width_, height_, 1) < 0)
             {
                 exit(1);
             }
             metadata->type = 0;
             metadata->size = buffer_size;
             metadata->timestamp = frame_->pts;
-            return 0;
+            return decoded_data.release();
         }
         else
         {
-            const size_t unpadded_linesize = frame_->nb_samples * av_get_bytes_per_sample(static_cast<AVSampleFormat>(frame_->format));
-            memcpy(decoded_data, frame_->extended_data[0], unpadded_linesize);
+            const size_t buffer_size = frame_->nb_samples * av_get_bytes_per_sample(static_cast<AVSampleFormat>(frame_->format));
+            auto decoded_data = std::make_unique<uint8_t[]>(buffer_size);
+            memcpy(decoded_data.get(), frame_->extended_data[0], buffer_size);
             metadata->type = 1;
-            metadata->size = unpadded_linesize;
+            metadata->size = buffer_size;
             metadata->timestamp = frame_->pts;
-            return 0;
+            return decoded_data.release();
         }
     }
 }

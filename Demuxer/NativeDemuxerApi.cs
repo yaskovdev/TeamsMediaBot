@@ -21,7 +21,10 @@ internal static class NativeDemuxerApi
     internal static extern IntPtr CreateDemuxer(Callback callback);
 
     [DllImport("NativeDemuxer.dll", EntryPoint = "read_frame")]
-    internal static extern int ReadFrame(IntPtr demuxer, byte[] data, ref FrameMetadata metadata);
+    internal static extern IntPtr ReadFrame(IntPtr demuxer, ref FrameMetadata metadata);
+
+    [DllImport("NativeDemuxer.dll", EntryPoint = "delete_frame_buffer")]
+    internal static extern void DeleteFrameBuffer(IntPtr buffer);
 
     [DllImport("NativeDemuxer.dll", EntryPoint = "delete_demuxer")]
     internal static extern void DeleteDemuxer(IntPtr demuxer);
