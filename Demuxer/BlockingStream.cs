@@ -16,7 +16,7 @@ public class BlockingStream : IBlockingStream
     {
         lock (_lock)
         {
-            if (_buffer_size + packet.Length > MaxSize)
+            if (_buffer_size - _offset + packet.Length > MaxSize) // TODO: what if packet.Length > MaxSize? Waiting won't help then.
             {
                 Monitor.Wait(_lock);
             }
