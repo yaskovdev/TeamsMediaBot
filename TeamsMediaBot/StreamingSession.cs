@@ -21,7 +21,7 @@ public class StreamingSession : IAsyncDisposable
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
-        _stream = new BlockingStream();
+        _stream = new BlockingStream(512 * 1024);
         var streamingBrowser = new StreamingBrowser();
         _launchBrowserTask = streamingBrowser.LaunchInstance(_stream);
         _demuxer = new Demuxer(_stream);

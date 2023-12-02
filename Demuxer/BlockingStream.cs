@@ -4,19 +4,24 @@ using System.Runtime.InteropServices;
 
 public class BlockingStream : IBlockingStream
 {
-    private const int MaxSize = 512 * 1024;
-
     private readonly object _lock = new();
-    private readonly byte[] _buffer = new byte[MaxSize];
+    private readonly int _capacity;
+    private readonly byte[] _buffer;
     private int _buffer_size;
     private int _offset;
     private int _disposed;
+
+    public BlockingStream(int capacity)
+    {
+        _capacity = capacity;
+        _buffer = new byte[_capacity];
+    }
 
     public void Write(byte[] packet)
     {
         lock (_lock)
         {
-            if (_buffer_size - _offset + packet.Length > MaxSize) // TODO: what if packet.Length > MaxSize? Waiting won't help then.
+            if (_buffer_size - _offset + packet.Length > _capacity) // TODO: what if packet.Length > MaxSize? Waiting won't help then.
             {
                 Monitor.Wait(_lock);
             }
