@@ -35,9 +35,8 @@ public class StreamingSession : IAsyncDisposable
     private async Task StartStreaming()
     {
         await _videoSocketActive.Task;
-        var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 1000);
+        var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(0), new VideoSettings(), 0);
         _player = new AudioVideoFramePlayer(null, (VideoSocket)_videoSocket, playerSettings);
-        _player.LowOnFrames += OnLowOnFrames;
         while (true)
         {
             try
@@ -99,11 +98,6 @@ public class StreamingSession : IAsyncDisposable
         if (args.MediaSendStatus == MediaSendStatus.Active)
         {
         }
-    }
-
-    private static void OnLowOnFrames(object? sender, LowOnFramesEventArgs e)
-    {
-        Console.WriteLine($"Player is low on {e.MediaType} frames, remaining media length in ms is {e.RemainingMediaLengthInMS}");
     }
 
     private static VideoBuffer Map(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);

@@ -19,7 +19,7 @@ public class Demuxer : IDemuxer
     {
         var metadata = new FrameMetadata();
         var data = NativeDemuxerApi.ReadFrame(_demuxer, ref metadata);
-        return new Frame(metadata.Type, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp), data);
+        return new Frame(metadata.Type, data, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp));
     }
 
     public void Dispose()
