@@ -33,4 +33,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.InstantiateService(typeof(ITeamsMediaBotService));
+
 app.Run();
