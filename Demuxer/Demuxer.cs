@@ -9,9 +9,9 @@ public class Demuxer : IDemuxer
 
     private readonly IntPtr _demuxer;
 
-    public Demuxer(IBlockingStream stream)
+    public Demuxer(IBlockingBuffer buffer)
     {
-        _callback = stream.Read;
+        _callback = buffer.Read;
         _demuxer = NativeDemuxerApi.CreateDemuxer(_callback);
     }
 

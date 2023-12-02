@@ -11,7 +11,7 @@ using Frame = Demuxer.Frame;
 public class StreamingSession : IAsyncDisposable
 {
     private readonly Task<IBrowser> _launchBrowserTask;
-    private readonly IBlockingStream _stream;
+    private readonly IBlockingBuffer _buffer;
     private readonly IDemuxer _demuxer;
     private readonly IVideoSocket _videoSocket;
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
@@ -21,10 +21,10 @@ public class StreamingSession : IAsyncDisposable
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
-        _stream = new BlockingStream(512 * 1024);
+        _buffer = new BlockingCircularBuffer(512 * 1024);
         var browserLauncher = new BrowserLauncher();
-        _launchBrowserTask = browserLauncher.LaunchInstance(_stream);
-        _demuxer = new Demuxer(_stream);
+        _launchBrowserTask = browserLauncher.LaunchInstance(_buffer);
+        _demuxer = new Demuxer(_buffer);
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         var audioSocket = mediaSession.AudioSocket;
@@ -41,7 +41,7 @@ public class StreamingSession : IAsyncDisposable
         {
             try
             {
-                await _semaphore.WaitAsync(); // TODO: test how it performs against normal lock and no lock at all
+                await _semaphore.WaitAsync();
                 if (_disposed == 0)
                 {
                     var frame = _demuxer.ReadFrame();
@@ -71,7 +71,7 @@ public class StreamingSession : IAsyncDisposable
         try
         {
             await _semaphore.WaitAsync();
-            _stream.Dispose();
+            _buffer.Dispose();
             _demuxer.Dispose();
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();

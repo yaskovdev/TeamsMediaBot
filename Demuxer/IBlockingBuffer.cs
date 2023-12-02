@@ -1,6 +1,6 @@
 ﻿namespace Demuxer;
 
-public interface IBlockingStream : IDisposable
+public interface IBlockingBuffer : IDisposable
 {
     void Write(byte[] packet);
 
