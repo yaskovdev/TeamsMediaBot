@@ -13,7 +13,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeDemuxer", "NativeDemu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrowserAudioVideoCapturingService", "BrowserAudioVideoCapturingService\BrowserAudioVideoCapturingService.csproj", "{D7532225-0D02-490D-9414-376B816138A1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemuxerTests", "DemuxerTests\DemuxerTests.csproj", "{90CF9A69-E246-4ADF-8691-376FC9EB0B47}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demuxer.Tests", "Demuxer.Tests\Demuxer.Tests.csproj", "{90CF9A69-E246-4ADF-8691-376FC9EB0B47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

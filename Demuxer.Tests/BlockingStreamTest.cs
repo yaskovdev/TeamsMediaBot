@@ -1,7 +1,6 @@
-namespace DemuxerTests;
+namespace Demuxer.Tests;
 
 using System.Runtime.InteropServices;
-using Demuxer;
 
 [TestClass]
 public class BlockingStreamTest
