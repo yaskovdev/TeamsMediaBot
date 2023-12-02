@@ -25,6 +25,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
     public TeamsMediaBotService(IConfiguration config, IJoinUrlParser joinUrlParser, ILogger<TeamsMediaBotService> logger,
         IRequestAuthenticationProvider requestAuthenticationProvider, IMediaPlatformLogger mediaPlatformLogger, IGraphLogger graphLogger)
     {
+        logger.LogInformation("Creating a new instance");
         var publicMediaUrl = new Uri(config["PublicMediaUrl"]);
         var mediaPlatformSettings = new MediaPlatformSettings
         {
@@ -56,7 +57,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         {
             if (_callIdToStreamingSession.TryRemove(call.Id, out var session))
             {
-                _logger.LogInformation("Disposing session with call ID {Id}", call.Id);
+                _logger.LogInformation("Disposing of session with call ID {Id}", call.Id);
                 await session.DisposeAsync();
             }
         }
@@ -89,7 +90,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _logger.LogInformation("Disposing of Teams media bot service, it may take some time");
+        _logger.LogInformation("Disposing, it may take some time");
         await _communicationsClient.TerminateAsync(false); // TODO: MediaPlatform initialized in SetMediaPlatformSettings prevents app shutdown otherwise
         _communicationsClient.Dispose();
     }

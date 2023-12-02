@@ -23,6 +23,8 @@ public class Demuxer : IDemuxer
         var data = new byte[1920 * 1080 * 3 / 2]; // TODO: check the size and do not hardcode
         var metadata = new FrameMetadata();
         NativeDemuxerApi.ReadFrame(_demuxer, data, ref metadata);
+        // TODO: Frame should have IntPtr that will be copied in TeamsMediaBot.StreamingSession.Map, then Frame can be disposed of using the native destructor
+        // Or even create your own implementation instead of VideoSendBuffer to copy straight to the pointer that MediaPlatform will use (and free it after the use)
         return new Frame(metadata.Type, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp), data);
     }
 

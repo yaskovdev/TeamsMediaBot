@@ -78,6 +78,7 @@ public class StreamingSession : IAsyncDisposable
         {
             _disposed = 1;
             _semaphore.Release();
+            _semaphore.Dispose();
         }
     }
 

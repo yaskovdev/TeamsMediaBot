@@ -15,7 +15,7 @@ public class MediaPlatformLogger : IMediaPlatformLogger
     public void WriteLog(LogLevel level, string logStatement)
     {
         var logLevel = Map(level);
-        if (logLevel is AppLogLevel.Information or AppLogLevel.Warning or AppLogLevel.Error)
+        if (logLevel is AppLogLevel.Warning or AppLogLevel.Error)
         {
             _logger.Log(logLevel, "{Message}", logStatement);
         }
