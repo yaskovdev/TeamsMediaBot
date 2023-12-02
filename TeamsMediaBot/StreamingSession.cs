@@ -22,8 +22,8 @@ public class StreamingSession : IAsyncDisposable
     public StreamingSession(ILocalMediaSession mediaSession)
     {
         _stream = new BlockingStream(512 * 1024);
-        var streamingBrowser = new StreamingBrowser();
-        _launchBrowserTask = streamingBrowser.LaunchInstance(_stream);
+        var browserLauncher = new BrowserLauncher();
+        _launchBrowserTask = browserLauncher.LaunchInstance(_stream);
         _demuxer = new Demuxer(_stream);
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
@@ -71,6 +71,7 @@ public class StreamingSession : IAsyncDisposable
             _stream.Dispose();
             _demuxer.Dispose();
             var browser = await _launchBrowserTask;
+            await browser.StopCapturing();
             await browser.DisposeAsync();
         }
         finally

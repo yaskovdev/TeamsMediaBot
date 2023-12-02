@@ -4,10 +4,8 @@ using System.Reflection;
 using Demuxer;
 using PuppeteerSharp;
 
-public class StreamingBrowser : IStreamingBrowser
+public class BrowserLauncher
 {
-    private const string ExtensionId = "jjndjgheafjngoipoacpjgeicjeomjli";
-
     private const string YouTubeVideoId = "IMyqasy2Lco";
 
     private const string ChromeExecutablePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -17,16 +15,13 @@ public class StreamingBrowser : IStreamingBrowser
         Console.WriteLine("Starting...");
 
         var browser = await Puppeteer.LaunchAsync(ChromeLaunchOptions(ChromeExecutablePath));
-        var extensionTarget = await browser.WaitForTargetAsync(IsExtensionBackgroundPage);
-        var extensionPage = await extensionTarget.PageAsync();
 
         var pages = await browser.PagesAsync();
         var page = pages[0];
         await page.GoToAsync($"https://www.youtube.com/embed/{YouTubeVideoId}?autoplay=1&loop=1&playlist={YouTubeVideoId}");
         await page.SetViewportAsync(new ViewPortOptions { Width = Constants.Width, Height = Constants.Height });
 
-        var capturingService = new CapturingService(extensionPage);
-
+        var extensionPage = await browser.ExtensionPage();
         await extensionPage.ExposeFunctionAsync<string, Task>("sendData", async data =>
         {
             Console.WriteLine($"Captured {data.Length / (double)1024:0.00} KB of media from the browser");
@@ -34,7 +29,7 @@ public class StreamingBrowser : IStreamingBrowser
             await Task.CompletedTask;
         });
 
-        await capturingService.StartCapturing();
+        await browser.StartCapturing();
 
         return browser;
     }
@@ -48,7 +43,7 @@ public class StreamingBrowser : IStreamingBrowser
             "--autoplay-policy=no-user-gesture-required",
             $"--load-extension={extensionPath}",
             $"--disable-extensions-except={extensionPath}",
-            $"--allowlisted-extension-id={ExtensionId}",
+            $"--allowlisted-extension-id={ExtensionConstants.ExtensionId}",
             "--headless=new",
             "--hide-scrollbars"
         };
@@ -64,7 +59,4 @@ public class StreamingBrowser : IStreamingBrowser
     }
 
     private static byte[] ToByteArray(string buffer) => buffer.Select(c => (byte)c).ToArray();
-
-    private static bool IsExtensionBackgroundPage(ITarget target) =>
-        target.Type == TargetType.BackgroundPage && target.Url.StartsWith($"chrome-extension://{ExtensionId}");
 }

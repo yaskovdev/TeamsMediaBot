@@ -17,7 +17,7 @@ public class MediaPlatformLogger : IMediaPlatformLogger
         var logLevel = Map(level);
         if (logLevel is AppLogLevel.Information or AppLogLevel.Warning or AppLogLevel.Error)
         {
-            _logger.Log(logLevel, "{Message}", $"[{level}] {logStatement}");
+            _logger.Log(logLevel, "{Message}", logStatement);
         }
     }
 
