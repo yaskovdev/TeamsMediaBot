@@ -16,11 +16,11 @@ public class BlockingCircularBuffer : IBlockingBuffer
         _buffer = new byte[capacity];
     }
 
-    public void Write(byte[] value)
+    public void Write(string packet)
     {
         lock (_lock)
         {
-            if (_size + value.Length > _buffer.Length) // TODO: what if packet.Length > _buffer.Length? Waiting won't help then.
+            if (_size + packet.Length > _buffer.Length) // TODO: what if packet.Length > _buffer.Length? Waiting won't help then.
             {
                 Monitor.Wait(_lock);
             }
@@ -30,17 +30,18 @@ public class BlockingCircularBuffer : IBlockingBuffer
                 return;
             }
 
-            var numToCopy = value.Length;
+            var numToCopy = packet.Length;
             var firstPart = _buffer.Length - _tail < numToCopy ? _buffer.Length - _tail : numToCopy;
-            Array.Copy(value, 0, _buffer, _tail, firstPart);
+            Copy(packet, 0, _buffer, _tail, firstPart);
+
             numToCopy -= firstPart;
             if (numToCopy > 0)
             {
-                Array.Copy(value, _buffer.Length - _tail, _buffer, 0, numToCopy);
+                Copy(packet, _buffer.Length - _tail, _buffer, 0, numToCopy);
             }
 
-            _tail = (_tail + value.Length) % _buffer.Length;
-            _size += value.Length;
+            _tail = (_tail + packet.Length) % _buffer.Length;
+            _size += packet.Length;
             Monitor.PulseAll(_lock);
         }
     }
@@ -82,6 +83,14 @@ public class BlockingCircularBuffer : IBlockingBuffer
         {
             _disposed = 1;
             Monitor.PulseAll(_lock);
+        }
+    }
+
+    private static void Copy(string source, int sourceIndex, byte[] destination, int destinationIndex, int length)
+    {
+        for (var i = 0; i < length; i++)
+        {
+            destination[destinationIndex + i] = (byte)source[sourceIndex + i];
         }
     }
 }

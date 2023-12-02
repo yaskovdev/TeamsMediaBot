@@ -25,7 +25,7 @@ public class BrowserLauncher
         await extensionPage.ExposeFunctionAsync<string, Task>("sendData", async data =>
         {
             Console.WriteLine($"Captured {data.Length / (double)1024:0.00} KB of media from the browser");
-            buffer.Write(ToByteArray(data));
+            buffer.Write(data);
             await Task.CompletedTask;
         });
 
@@ -57,6 +57,4 @@ public class BrowserLauncher
         var path = Uri.UnescapeDataString(uriBuilder.Path);
         return Path.Combine(Path.GetDirectoryName(path) ?? "", name);
     }
-
-    private static byte[] ToByteArray(string buffer) => buffer.Select(c => (byte)c).ToArray();
 }

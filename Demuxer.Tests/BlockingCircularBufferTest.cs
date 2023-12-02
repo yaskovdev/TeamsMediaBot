@@ -16,8 +16,8 @@ public class BlockingCircularBufferTest
         var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         try
         {
-            instanceUnderTest.Write(new byte[] { 1, 2, 3 });
-            instanceUnderTest.Write(new byte[] { 4 });
+            instanceUnderTest.Write(Encode(new byte[] { 1, 2, 3 }));
+            instanceUnderTest.Write(Encode(new byte[] { 4 }));
             instanceUnderTest.Read(handle.AddrOfPinnedObject(), 2).ShouldBe(2);
             new ArraySegment<byte>(buffer)[..2].ShouldBe(new byte[] { 1, 2 });
             instanceUnderTest.Read(handle.AddrOfPinnedObject(), 2).ShouldBe(2);
@@ -39,7 +39,7 @@ public class BlockingCircularBufferTest
         var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         try
         {
-            instanceUnderTest.Write(new byte[] { 1 });
+            instanceUnderTest.Write(Encode(new byte[] { 1 }));
             instanceUnderTest.Read(handle.AddrOfPinnedObject(), 2).ShouldBe(1);
             new ArraySegment<byte>(buffer)[..1].ShouldBe(new byte[] { 1 });
         }
@@ -59,13 +59,15 @@ public class BlockingCircularBufferTest
         try
         {
             var instanceUnderTest = new BlockingCircularBuffer(1);
-            instanceUnderTest.Write(new byte[] { 0 });
+            instanceUnderTest.Write(Encode(new byte[] { 0 }));
             instanceUnderTest.Read(handle.AddrOfPinnedObject(), 1);
-            instanceUnderTest.Write(new byte[] { 0 });
+            instanceUnderTest.Write(Encode(new byte[] { 0 }));
         }
         finally
         {
             handle.Free();
         }
     }
+
+    private static string Encode(byte[] source) => new(source.Select(it => (char)it).ToArray());
 }
