@@ -44,7 +44,7 @@ private:
     bool decoder_needs_packet_;
     int current_stream_index_;
 
-    int initialize();
+    void initialize();
 
     AVCodecContext* current_context() const;
 

@@ -9,6 +9,10 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
+#define ASSERT_NON_NEGATIVE(res, message) if ((res) < 0) throw std::runtime_error(message)
+
+#define ASSERT_NOT_NULL(res, message) if ((res) == nullptr) throw std::runtime_error(message)
+
 demuxer::demuxer(const callback callback): initialized_(false), callback_(callback), fmt_ctx_(nullptr), frame_(nullptr), pkt_(nullptr), width_(0), height_(0),
     pix_fmt_(AV_PIX_FMT_NONE), video_dst_bufsize_(0), video_dst_data_{}, video_dst_linesize_{}, audio_stream_idx_(-1), video_stream_idx_(-1),
     audio_dec_ctx_(nullptr), video_dec_ctx_(nullptr), sws_context_(nullptr), decoder_needs_packet_(true), current_stream_index_(-1)
@@ -16,115 +20,55 @@ demuxer::demuxer(const callback callback): initialized_(false), callback_(callba
     std::cout << "Demuxer created" << "\n";
 }
 
-int demuxer::initialize()
+void demuxer::initialize()
 {
     fmt_ctx_ = avformat_alloc_context();
     std::cout << "Allocated format context " << fmt_ctx_ << "\n";
 
     constexpr size_t io_ctx_buffer_size = 4096;
     const auto io_ctx_buffer = static_cast<uint8_t*>(av_malloc(io_ctx_buffer_size));
-    if (io_ctx_buffer)
-    {
-        std::cout << "Allocated context buffer " << io_ctx_buffer << "\n";
-    }
-    else
-    {
-        return -1;
-    }
+    ASSERT_NOT_NULL(io_ctx_buffer, "Cannot allocate context buffer");
 
     AVIOContext* io_ctx = avio_alloc_context(io_ctx_buffer, io_ctx_buffer_size, 0, &callback_, &read_packet, nullptr, nullptr);
-
-    if (io_ctx)
-    {
-        std::cout << "Allocated IO context " << io_ctx << "\n";
-    }
-    else
-    {
-        return -1;
-    }
+    ASSERT_NOT_NULL(io_ctx, "Cannot allocate IO context");
 
     fmt_ctx_->pb = io_ctx;
 
-    const int open_input_res = avformat_open_input(&fmt_ctx_, nullptr, nullptr, nullptr);
-    if (open_input_res >= 0)
-    {
-        std::cout << "Opened input" << "\n";
-    }
-    else
-    {
-        std::cout << "Cannot opened input, result is " << (open_input_res == AVERROR_INVALIDDATA) << "\n";
-        return -1;
-    }
+    ASSERT_NON_NEGATIVE(avformat_open_input(&fmt_ctx_, nullptr, nullptr, nullptr), "Cannot open input");
+    ASSERT_NON_NEGATIVE(avformat_find_stream_info(fmt_ctx_, nullptr), "Cannot find stream info");
 
-    if (avformat_find_stream_info(fmt_ctx_, nullptr) >= 0)
-    {
-        std::cout << "Found stream info" << "\n";
-    }
-    else
-    {
-        return -1;
-    }
+    ASSERT_NON_NEGATIVE(open_codec_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO), "Cannot open video context");
+    width_ = video_dec_ctx_->width;
+    height_ = video_dec_ctx_->height;
+    pix_fmt_ = video_dec_ctx_->pix_fmt;
+    sws_context_ = sws_getContext(width_, height_, pix_fmt_, width_, height_, AV_PIX_FMT_NV12, SWS_BILINEAR, nullptr, nullptr, nullptr);
+    video_dst_bufsize_ = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, AV_PIX_FMT_NV12, 1);
+    ASSERT_NON_NEGATIVE(video_dst_bufsize_, "Could not allocate raw video buffer");
 
-    bool decoder_context_opened = false;
-    if (open_codec_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO) >= 0)
-    {
-        decoder_context_opened = true;
-        width_ = video_dec_ctx_->width;
-        height_ = video_dec_ctx_->height;
-        pix_fmt_ = video_dec_ctx_->pix_fmt;
-        sws_context_ = sws_getContext(width_, height_, pix_fmt_, width_, height_, AV_PIX_FMT_NV12, SWS_BILINEAR, nullptr, nullptr, nullptr);
-        const int ret = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, AV_PIX_FMT_NV12, 1);
-        if (ret < 0)
-        {
-            fprintf(stderr, "Could not allocate raw video buffer\n");
-            return -1;
-        }
-        video_dst_bufsize_ = ret;
-    }
-
-    if (open_codec_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO) >= 0)
-    {
-        decoder_context_opened = true;
-    }
+    ASSERT_NON_NEGATIVE(open_codec_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO), "Cannot open audio context");
 
     av_dump_format(fmt_ctx_, 0, nullptr, 0);
 
-    if (!decoder_context_opened)
-    {
-        fprintf(stderr, "Could not find audio or video stream in the input, aborting\n");
-        return -1;
-    }
-
     frame_ = av_frame_alloc();
-    if (!frame_)
-    {
-        fprintf(stderr, "Could not allocate frame\n");
-        return -1;
-    }
+    ASSERT_NOT_NULL(frame_, "Could not allocate frame");
 
     pkt_ = av_packet_alloc();
-    if (!pkt_)
-    {
-        fprintf(stderr, "Could not allocate packet\n");
-        return -1;
-    }
-
-    return 0;
+    ASSERT_NOT_NULL(pkt_, "Could not allocate packet");
 }
 
 uint8_t* demuxer::read_frame(frame_metadata* metadata)
 {
     if (!initialized_)
     {
-        const int status = initialize();
-        if (status == 0)
+        try
         {
+            initialize();
             std::cout << "Initialized demuxer" << "\n";
             initialized_ = true;
         }
-        else
+        catch (std::runtime_error& e)
         {
-            std::cout << "Cannot initialize demuxer, not enough data in the buffer, send more data" << "\n";
+            std::cout << "Cannot initialize demuxer, not enough data in the buffer, send more data. The error is " << e.what() << "\n";
             return nullptr;
         }
     }
