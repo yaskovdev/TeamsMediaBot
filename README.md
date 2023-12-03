@@ -70,9 +70,9 @@ ffplay -i srt://127.0.0.1:4000
 ## API
 
 ```shell
-curl -v -k -H 'Content-Type: application/json' https://localhost:7105/api/join-call-requests -d '{ "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDA1NDJjZDgtNDRhYy00MGY4LWE2YzQtMjI1YzFlNTAzYzMw%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22b1b11b68-1839-4792-a462-1854254ddfe8%22%2c%22MessageId%22%3a%220%22%7d" }'
+curl -k -H 'Content-Type: application/json' https://localhost:7105/api/join-call-requests -d '{ "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDA1NDJjZDgtNDRhYy00MGY4LWE2YzQtMjI1YzFlNTAzYzMw%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22b1b11b68-1839-4792-a462-1854254ddfe8%22%2c%22MessageId%22%3a%220%22%7d" }'
 ```
 
 ```shell
-curl -v -H 'Content-Type: application/json' http://localhost:5228/api/calls -d '{ "key": "value" }'
+curl -H 'Content-Type: application/json' http://localhost:5228/api/calls -d '{ "key": "value" }'
 ```

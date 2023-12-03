@@ -15,8 +15,4 @@
         <PackageReference Include="PuppeteerSharp" Version="13.0.1" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Demuxer\Demuxer.csproj" />
-    </ItemGroup>
-
 </Project>

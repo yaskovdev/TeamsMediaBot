@@ -50,5 +50,5 @@ private:
 
     static int read_packet(void* opaque, uint8_t* dst_buffer, int dst_buffer_size);
 
-    static int open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type);
+    static void open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type);
 };

@@ -22,7 +22,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
         {
             if (packet.Length > _buffer.Length)
             {
-                Console.WriteLine("The packet is bigger than the buffer size, skipping the packet");
+                Console.WriteLine("The packet is bigger than the buffer capacity, skipping the packet");
                 return;
             }
 

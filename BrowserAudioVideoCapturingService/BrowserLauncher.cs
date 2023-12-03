@@ -1,7 +1,6 @@
 ﻿namespace BrowserAudioVideoCapturingService;
 
 using System.Reflection;
-using Demuxer;
 using PuppeteerSharp;
 
 public class BrowserLauncher
@@ -10,7 +9,7 @@ public class BrowserLauncher
 
     private const string ChromeExecutablePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
-    public async Task<IBrowser> LaunchInstance(IBlockingBuffer buffer)
+    public async Task<IBrowser> LaunchInstance(Action<string> onMediaChunkReceived)
     {
         Console.WriteLine("Starting...");
 
@@ -25,7 +24,7 @@ public class BrowserLauncher
         await extensionPage.ExposeFunctionAsync<string, Task>("sendData", async data =>
         {
             Console.WriteLine($"Captured {data.Length / (double)1024:0.00} KB of media from the browser");
-            buffer.Write(data);
+            onMediaChunkReceived(data);
             await Task.CompletedTask;
         });
 

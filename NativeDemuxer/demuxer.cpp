@@ -3,15 +3,10 @@
 #include <iostream>
 
 extern "C" {
-#include "libavutil/file.h"
 #include "libavutil/imgutils.h"
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 }
-
-#define ASSERT_NON_NEGATIVE(res, message) if ((res) < 0) throw std::runtime_error(message)
-
-#define ASSERT_NOT_NULL(res, message) if ((res) == nullptr) throw std::runtime_error(message)
 
 demuxer::demuxer(const callback callback): initialized_(false), callback_(callback), fmt_ctx_(nullptr), frame_(nullptr), pkt_(nullptr), width_(0), height_(0),
     pix_fmt_(AV_PIX_FMT_NONE), video_dst_bufsize_(0), video_dst_data_{}, video_dst_linesize_{}, audio_stream_idx_(-1), video_stream_idx_(-1),
@@ -37,15 +32,16 @@ void demuxer::initialize()
     ASSERT_NON_NEGATIVE(avformat_open_input(&fmt_ctx_, nullptr, nullptr, nullptr), "Cannot open input");
     ASSERT_NON_NEGATIVE(avformat_find_stream_info(fmt_ctx_, nullptr), "Cannot find stream info");
 
-    ASSERT_NON_NEGATIVE(open_codec_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO), "Cannot open video context");
+    open_codec_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO);
     width_ = video_dec_ctx_->width;
     height_ = video_dec_ctx_->height;
     pix_fmt_ = video_dec_ctx_->pix_fmt;
     sws_context_ = sws_getContext(width_, height_, pix_fmt_, width_, height_, AV_PIX_FMT_NV12, SWS_BILINEAR, nullptr, nullptr, nullptr);
+    ASSERT_NOT_NULL(sws_context_, "Cannot allocate scaling context");
     video_dst_bufsize_ = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, AV_PIX_FMT_NV12, 1);
     ASSERT_NON_NEGATIVE(video_dst_bufsize_, "Could not allocate raw video buffer");
 
-    ASSERT_NON_NEGATIVE(open_codec_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO), "Cannot open audio context");
+    open_codec_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO);
 
     av_dump_format(fmt_ctx_, 0, nullptr, 0);
 
@@ -66,7 +62,7 @@ uint8_t* demuxer::read_frame(frame_metadata* metadata)
             std::cout << "Initialized demuxer" << "\n";
             initialized_ = true;
         }
-        catch (std::runtime_error& e)
+        catch (demuxer_exception& e)
         {
             std::cout << "Cannot initialize demuxer, not enough data in the buffer, send more data. The error is " << e.what() << "\n";
             return nullptr;
@@ -92,7 +88,7 @@ uint8_t* demuxer::read_frame(frame_metadata* metadata)
             }
             else
             {
-                ASSERT_NON_NEGATIVE(decoding_status, "Cannot receive decoded framae");
+                ASSERT_NON_NEGATIVE(decoding_status, "Cannot receive decoded frame");
             }
         }
         else if (pkt_->stream_index == video_stream_idx_)
@@ -126,7 +122,7 @@ int demuxer::read_packet(void* opaque, uint8_t* dst_buffer, const int dst_buffer
     return size == -1 ? AVERROR_EOF : size;
 }
 
-int demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type)
+void demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type)
 {
     *stream_idx = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
     ASSERT_NON_NEGATIVE(*stream_idx, "Could not find stream in input file");
@@ -140,8 +136,6 @@ int demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFor
 
     ASSERT_NON_NEGATIVE(avcodec_parameters_to_context(*dec_ctx, stream->codecpar), "Failed to copy codec parameters to decoder context");
     ASSERT_NON_NEGATIVE(avcodec_open2(*dec_ctx, dec, nullptr), "Failed to open decoder");
-
-    return 0;
 }
 
 AVCodecContext* demuxer::current_context() const
@@ -154,5 +148,5 @@ AVCodecContext* demuxer::current_context() const
     {
         return video_dec_ctx_;
     }
-    throw std::runtime_error("Unexpected stream index");
+    throw demuxer_exception("Unexpected stream index");
 }

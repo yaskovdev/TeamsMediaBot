@@ -23,7 +23,7 @@ public class StreamingSession : IAsyncDisposable
     {
         _buffer = new BlockingCircularBuffer(512 * 1024);
         var browserLauncher = new BrowserLauncher();
-        _launchBrowserTask = browserLauncher.LaunchInstance(_buffer);
+        _launchBrowserTask = browserLauncher.LaunchInstance(_buffer.Write);
         _demuxer = new Demuxer(_buffer);
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
