@@ -48,13 +48,8 @@ configured in DNS).
 
 ### Configure Media Platform
 
-Open PowerShell *as admin*, go to `TeamsMediaBot\TeamsMediaBot\bin\x64\Release\net6.0` (or `Debug`) and
+Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Release\net6.0` (or `Debug`) and
 run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
-
-### Prepare Video Frames
-
-Convert a video to packets using `ffmpeg -i Recording.mp4 -pix_fmt nv12 %07d.raw`. Make sure the Recording.mp4 is
-1920x1080.
 
 ## Running With Docker In Linux Container
 
