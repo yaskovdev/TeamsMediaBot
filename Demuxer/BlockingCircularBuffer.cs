@@ -9,7 +9,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
     private int _head;
     private int _tail;
     private int _size;
-    private int _disposed;
+    private bool _disposed;
 
     public BlockingCircularBuffer(int capacity)
     {
@@ -20,24 +20,28 @@ public class BlockingCircularBuffer : IBlockingBuffer
     {
         lock (_lock)
         {
-            if (_size + packet.Length > _buffer.Length) // TODO: what if packet.Length > _buffer.Length? Waiting won't help then.
+            if (packet.Length > _buffer.Length)
+            {
+                Console.WriteLine("The packet is bigger than the buffer size, skipping the packet");
+                return;
+            }
+
+            if (_size + packet.Length > _buffer.Length)
             {
                 Monitor.Wait(_lock);
             }
 
-            if (_disposed == 1)
+            if (_disposed)
             {
                 return;
             }
 
-            var numToCopy = packet.Length;
-            var firstPart = _buffer.Length - _tail < numToCopy ? _buffer.Length - _tail : numToCopy;
+            var firstPart = _buffer.Length - _tail < packet.Length ? _buffer.Length - _tail : packet.Length;
             Copy(packet, 0, _buffer, _tail, firstPart);
 
-            numToCopy -= firstPart;
-            if (numToCopy > 0)
+            if (packet.Length - firstPart > 0)
             {
-                Copy(packet, _buffer.Length - _tail, _buffer, 0, numToCopy);
+                Copy(packet, _buffer.Length - _tail, _buffer, 0, packet.Length - firstPart);
             }
 
             _tail = (_tail + packet.Length) % _buffer.Length;
@@ -55,7 +59,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
                 Monitor.Wait(_lock);
             }
 
-            if (_disposed == 1)
+            if (_disposed)
             {
                 return -1;
             }
@@ -81,7 +85,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
     {
         lock (_lock)
         {
-            _disposed = 1;
+            _disposed = true;
             Monitor.PulseAll(_lock);
         }
     }

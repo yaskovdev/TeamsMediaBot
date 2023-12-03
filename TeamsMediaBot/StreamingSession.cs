@@ -16,7 +16,7 @@ public class StreamingSession : IAsyncDisposable
     private readonly IVideoSocket _videoSocket;
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private int _disposed;
+    private bool _disposed;
     private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
@@ -42,7 +42,7 @@ public class StreamingSession : IAsyncDisposable
             try
             {
                 await _semaphore.WaitAsync();
-                if (_disposed == 0)
+                if (!_disposed)
                 {
                     var frame = _demuxer.ReadFrame();
                     if (frame.Type == FrameType.Video)
@@ -79,7 +79,7 @@ public class StreamingSession : IAsyncDisposable
         }
         finally
         {
-            _disposed = 1;
+            _disposed = true;
             _semaphore.Release();
             _semaphore.Dispose();
         }

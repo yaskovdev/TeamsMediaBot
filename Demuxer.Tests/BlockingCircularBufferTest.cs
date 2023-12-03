@@ -1,7 +1,6 @@
 namespace Demuxer.Tests;
 
 using System.Runtime.InteropServices;
-using Shouldly;
 
 [TestClass]
 public class BlockingCircularBufferTest
@@ -53,8 +52,7 @@ public class BlockingCircularBufferTest
     [Timeout(3000)]
     public void ShouldAcceptWriteGivenEnoughSpace()
     {
-        const int capacity = 1;
-        var buffer = new byte[capacity];
+        var buffer = new byte[1];
         var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         try
         {
@@ -62,6 +60,25 @@ public class BlockingCircularBufferTest
             instanceUnderTest.Write(Encode(new byte[] { 0 }));
             instanceUnderTest.Read(handle.AddrOfPinnedObject(), 1);
             instanceUnderTest.Write(Encode(new byte[] { 0 }));
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
+    [TestMethod]
+    public void ShouldSkipPacketThadDoesNotFitIntoCapacity()
+    {
+        var buffer = new byte[2];
+        var instanceUnderTest = new BlockingCircularBuffer(1);
+        instanceUnderTest.Write(Encode(new byte[] { 1, 2 }));
+        instanceUnderTest.Write(Encode(new byte[] { 3 }));
+        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        try
+        {
+            instanceUnderTest.Read(handle.AddrOfPinnedObject(), 1);
+            new ArraySegment<byte>(buffer)[..1].ShouldBe(new byte[] { 3 });
         }
         finally
         {

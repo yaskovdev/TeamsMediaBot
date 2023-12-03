@@ -56,6 +56,22 @@ run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 Convert a video to packets using `ffmpeg -i Recording.mp4 -pix_fmt nv12 %07d.raw`. Make sure the Recording.mp4 is
 1920x1080.
 
+## Running With Docker In Linux Container
+
+```powershell
+docker build -f TeamsMediaBot/Dockerfile -t yaskovdev/teams-media-bot .
+docker run -p 4000:4000/udp -d yaskovdev/teams-media-bot
+ffplay -i srt://127.0.0.1:4000
+```
+
+## Running With Docker In Windows Container
+
+```powershell
+docker build -f TeamsMediaBot/Windows.Dockerfile -t yaskovdev/teams-media-bot .
+docker run -p 4000:4000/udp -d yaskovdev/teams-media-bot
+ffplay -i srt://127.0.0.1:4000
+```
+
 ## API
 
 ```shell
