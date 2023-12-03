@@ -17,7 +17,7 @@ demuxer::demuxer(const callback callback): initialized_(false), callback_(callba
     pix_fmt_(AV_PIX_FMT_NONE), video_dst_bufsize_(0), video_dst_data_{}, video_dst_linesize_{}, audio_stream_idx_(-1), video_stream_idx_(-1),
     audio_dec_ctx_(nullptr), video_dec_ctx_(nullptr), sws_context_(nullptr), decoder_needs_packet_(true), current_stream_index_(-1)
 {
-    std::cout << "Demuxer created" << "\n";
+    std::cout << "Demuxer instantiated" << "\n";
 }
 
 void demuxer::initialize()
@@ -77,15 +77,9 @@ uint8_t* demuxer::read_frame(frame_metadata* metadata)
     {
         if (decoder_needs_packet_)
         {
-            if (av_read_frame(fmt_ctx_, pkt_) < 0)
-            {
-                return nullptr;
-            }
+            ASSERT_NON_NEGATIVE(av_read_frame(fmt_ctx_, pkt_), "Cannot read new packet");
             current_stream_index_ = pkt_->stream_index;
-            if (avcodec_send_packet(current_context(), pkt_) < 0)
-            {
-                exit(1); // TODO: throw exception instead
-            }
+            ASSERT_NON_NEGATIVE(avcodec_send_packet(current_context(), pkt_), "Cannot send packet to decoder");
             decoder_needs_packet_ = false;
         }
 
@@ -98,18 +92,15 @@ uint8_t* demuxer::read_frame(frame_metadata* metadata)
             }
             else
             {
-                exit(1);
+                ASSERT_NON_NEGATIVE(decoding_status, "Cannot receive decoded framae");
             }
         }
         else if (pkt_->stream_index == video_stream_idx_)
         {
-            sws_scale(sws_context_, frame_->data, frame_->linesize, 0, frame_->height, video_dst_data_, video_dst_linesize_);
+            ASSERT_NON_NEGATIVE(sws_scale(sws_context_, frame_->data, frame_->linesize, 0, frame_->height, video_dst_data_, video_dst_linesize_), "Cannnot scale video frame");
             const int buffer_size = av_image_get_buffer_size(AV_PIX_FMT_NV12, width_, height_, 1);
             auto decoded_data = std::make_unique<uint8_t[]>(buffer_size);
-            if (av_image_copy_to_buffer(decoded_data.get(), buffer_size, video_dst_data_, video_dst_linesize_, AV_PIX_FMT_NV12, width_, height_, 1) < 0)
-            {
-                exit(1);
-            }
+            ASSERT_NON_NEGATIVE(av_image_copy_to_buffer(decoded_data.get(), buffer_size, video_dst_data_, video_dst_linesize_, AV_PIX_FMT_NV12, width_, height_, 1), "Cannnot copy decoded frame to output buffer");
             metadata->type = 0;
             metadata->size = buffer_size;
             metadata->timestamp = frame_->pts;
@@ -137,55 +128,18 @@ int demuxer::read_packet(void* opaque, uint8_t* dst_buffer, const int dst_buffer
 
 int demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type)
 {
-    int ret, stream_index;
-    AVStream* st;
+    *stream_idx = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
+    ASSERT_NON_NEGATIVE(*stream_idx, "Could not find stream in input file");
+    const AVStream* stream = fmt_ctx->streams[*stream_idx];
 
-    ret = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
-    if (ret < 0)
-    {
-        fprintf(stderr, "Could not find %s stream in input file\n", av_get_media_type_string(type));
-        return ret;
-    }
-    else
-    {
-        stream_index = ret;
-        st = fmt_ctx->streams[stream_index];
+    const AVCodec* dec = avcodec_find_decoder(stream->codecpar->codec_id);
+    ASSERT_NOT_NULL(dec, "Failed to find decoder");
 
-        /* find decoder for the stream */
-        const AVCodec* dec = avcodec_find_decoder(st->codecpar->codec_id);
-        if (!dec)
-        {
-            fprintf(stderr, "Failed to find %s codec\n",
-                av_get_media_type_string(type));
-            return AVERROR(EINVAL);
-        }
+    *dec_ctx = avcodec_alloc_context3(dec);
+    ASSERT_NOT_NULL(*dec_ctx, "Failed to open decoder context");
 
-        /* Allocate a codec context for the decoder */
-        *dec_ctx = avcodec_alloc_context3(dec);
-        if (!*dec_ctx)
-        {
-            fprintf(stderr, "Failed to allocate the %s codec context\n",
-                av_get_media_type_string(type));
-            return AVERROR(ENOMEM);
-        }
-
-        /* Copy codec parameters from input stream to output codec context */
-        if ((ret = avcodec_parameters_to_context(*dec_ctx, st->codecpar)) < 0)
-        {
-            fprintf(stderr, "Failed to copy %s codec parameters to decoder context\n",
-                av_get_media_type_string(type));
-            return ret;
-        }
-
-        /* Init the decoders */
-        if ((ret = avcodec_open2(*dec_ctx, dec, nullptr)) < 0)
-        {
-            fprintf(stderr, "Failed to open %s codec\n",
-                av_get_media_type_string(type));
-            return ret;
-        }
-        *stream_idx = stream_index;
-    }
+    ASSERT_NON_NEGATIVE(avcodec_parameters_to_context(*dec_ctx, stream->codecpar), "Failed to copy codec parameters to decoder context");
+    ASSERT_NON_NEGATIVE(avcodec_open2(*dec_ctx, dec, nullptr), "Failed to open decoder");
 
     return 0;
 }
@@ -200,6 +154,5 @@ AVCodecContext* demuxer::current_context() const
     {
         return video_dec_ctx_;
     }
-    // TODO: handle this case properly (should skip such packet)
-    exit(1);
+    throw std::runtime_error("Unexpected stream index");
 }
