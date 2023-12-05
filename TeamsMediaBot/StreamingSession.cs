@@ -1,6 +1,5 @@
 ﻿namespace TeamsMediaBot;
 
-using System.Collections.Immutable;
 using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Calls.Media;
@@ -17,7 +16,6 @@ public class StreamingSession : IAsyncDisposable
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private bool _disposed;
-    private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
@@ -35,8 +33,6 @@ public class StreamingSession : IAsyncDisposable
     private async Task StartStreaming()
     {
         await _videoSocketActive.Task;
-        var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(0), new VideoSettings(), 0);
-        _player = new AudioVideoFramePlayer(null, (VideoSocket)_videoSocket, playerSettings);
         while (true)
         {
             try
@@ -47,7 +43,7 @@ public class StreamingSession : IAsyncDisposable
                     var frame = _demuxer.ReadFrame();
                     if (frame.Type == FrameType.Video)
                     {
-                        await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(Map(frame)));
+                        _videoSocket.Send(Map(frame));
                     }
                     else
                     {

@@ -6,7 +6,7 @@ public class StartRecordingSettings
 
     public bool Audio => true;
 
-    public int TimeSliceMs => 500;
+    public int TimeSliceMs => 10;
 
     public string MimeType => $"video/webm;codecs=\"{Constants.VideoEncoder},{Constants.AudioEncoder}\"";
 

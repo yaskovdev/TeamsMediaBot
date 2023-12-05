@@ -32,7 +32,7 @@ void demuxer::initialize()
     ASSERT_NON_NEGATIVE(avformat_open_input(&fmt_ctx_, nullptr, nullptr, nullptr), "Cannot open input");
     ASSERT_NON_NEGATIVE(avformat_find_stream_info(fmt_ctx_, nullptr), "Cannot find stream info");
 
-    open_codec_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO);
+    open_decoder_context(&video_stream_idx_, &video_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_VIDEO);
     width_ = video_dec_ctx_->width;
     height_ = video_dec_ctx_->height;
     pix_fmt_ = video_dec_ctx_->pix_fmt;
@@ -41,7 +41,7 @@ void demuxer::initialize()
     video_dst_bufsize_ = av_image_alloc(video_dst_data_, video_dst_linesize_, width_, height_, AV_PIX_FMT_NV12, 1);
     ASSERT_NON_NEGATIVE(video_dst_bufsize_, "Could not allocate raw video buffer");
 
-    open_codec_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO);
+    open_decoder_context(&audio_stream_idx_, &audio_dec_ctx_, fmt_ctx_, AVMEDIA_TYPE_AUDIO);
 
     av_dump_format(fmt_ctx_, 0, nullptr, 0);
 
@@ -122,7 +122,7 @@ int demuxer::read_packet(void* opaque, uint8_t* dst_buffer, const int dst_buffer
     return size == -1 ? AVERROR_EOF : size;
 }
 
-void demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFormatContext* fmt_ctx, AVMediaType type)
+void demuxer::open_decoder_context(int* stream_idx, AVCodecContext** decoder_context, AVFormatContext* fmt_ctx, const AVMediaType type)
 {
     *stream_idx = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
     ASSERT_NON_NEGATIVE(*stream_idx, "Could not find stream in input file");
@@ -131,11 +131,11 @@ void demuxer::open_codec_context(int* stream_idx, AVCodecContext** dec_ctx, AVFo
     const AVCodec* dec = avcodec_find_decoder(stream->codecpar->codec_id);
     ASSERT_NOT_NULL(dec, "Failed to find decoder");
 
-    *dec_ctx = avcodec_alloc_context3(dec);
-    ASSERT_NOT_NULL(*dec_ctx, "Failed to open decoder context");
+    *decoder_context = avcodec_alloc_context3(dec);
+    ASSERT_NOT_NULL(*decoder_context, "Failed to open decoder context");
 
-    ASSERT_NON_NEGATIVE(avcodec_parameters_to_context(*dec_ctx, stream->codecpar), "Failed to copy codec parameters to decoder context");
-    ASSERT_NON_NEGATIVE(avcodec_open2(*dec_ctx, dec, nullptr), "Failed to open decoder");
+    ASSERT_NON_NEGATIVE(avcodec_parameters_to_context(*decoder_context, stream->codecpar), "Failed to copy codec parameters to decoder context");
+    ASSERT_NON_NEGATIVE(avcodec_open2(*decoder_context, dec, nullptr), "Failed to open decoder");
 }
 
 AVCodecContext* demuxer::current_context() const
