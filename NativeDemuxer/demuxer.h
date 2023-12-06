@@ -19,12 +19,6 @@ struct buffer_data
 
 class demuxer
 {
-public:
-    demuxer(callback callback);
-
-    uint8_t* read_frame(frame_metadata* metadata);
-
-private:
     bool initialized_;
     callback callback_;
     AVFormatContext* fmt_ctx_;
@@ -51,4 +45,9 @@ private:
     static int read_packet(void* opaque, uint8_t* dst_buffer, int dst_buffer_size);
 
     static void open_decoder_context(int* stream_idx, AVCodecContext** decoder_context, AVFormatContext* fmt_ctx, AVMediaType type);
+
+public:
+    demuxer(callback callback);
+
+    uint8_t* read_frame(frame_metadata* metadata);
 };
