@@ -1,6 +1,7 @@
 ﻿namespace Demuxer.Tests;
 
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 [TestClass]
 public class ResamplerTest
@@ -10,15 +11,23 @@ public class ResamplerTest
     {
         using var instanceUnderTest = new Resampler();
         var bytes = File.ReadAllBytes(GetResourcePath(@"Resources\AudioFrame.pcm"));
-        instanceUnderTest.WriteFrame(bytes);
-        while (true)
+        var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+        try
         {
-            var frame = instanceUnderTest.ReadFrame();
-            if (frame.Data == IntPtr.Zero)
+            instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), bytes.Length, 0);
+            while (true)
             {
-                break;
+                var frame = instanceUnderTest.ReadFrame();
+                if (frame.Data == IntPtr.Zero)
+                {
+                    break;
+                }
+                Console.WriteLine("Read frame of length " + frame.Size);
             }
-            Console.WriteLine("Read frame of length " + frame.Size);
+        }
+        finally
+        {
+            handle.Free();
         }
     }
 

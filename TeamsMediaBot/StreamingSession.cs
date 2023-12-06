@@ -1,5 +1,6 @@
 ﻿namespace TeamsMediaBot;
 
+using System.Collections.Immutable;
 using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Calls.Media;
@@ -12,10 +13,14 @@ public class StreamingSession : IAsyncDisposable
     private readonly Task<IBrowser> _launchBrowserTask;
     private readonly IBlockingBuffer _buffer;
     private readonly IDemuxer _demuxer;
+    private readonly IResampler _resampler;
+    private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
+    private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private bool _disposed;
+    private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
@@ -23,16 +28,19 @@ public class StreamingSession : IAsyncDisposable
         var browserLauncher = new BrowserLauncher();
         _launchBrowserTask = browserLauncher.LaunchInstance(_buffer.Write);
         _demuxer = new Demuxer(_buffer);
+        _resampler = new Resampler();
+        _audioSocket = mediaSession.AudioSocket;
+        _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
-        var audioSocket = mediaSession.AudioSocket;
-        audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _ = StartStreaming();
     }
 
     private async Task StartStreaming()
     {
-        await _videoSocketActive.Task;
+        await Task.WhenAll(_audioSocketActive.Task, _videoSocketActive.Task);
+        var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 0);
+        _player = new AudioVideoFramePlayer((AudioSocket)_audioSocket, (VideoSocket)_videoSocket, playerSettings);
         while (true)
         {
             try
@@ -43,11 +51,24 @@ public class StreamingSession : IAsyncDisposable
                     var frame = _demuxer.ReadFrame();
                     if (frame.Type == FrameType.Video)
                     {
-                        _videoSocket.Send(Map(frame));
+                        await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(MapVideo(frame)));
                     }
                     else
                     {
-                        frame.Dispose();
+                        // Console.WriteLine("Sending audio " + frame.Size);
+                        // _audioSocket.Send(MapAudio(frame));
+                        // Console.WriteLine("Done sending audio");
+                        _resampler.WriteFrame(frame.Data, (int)frame.Size, frame.Timestamp.Milliseconds);
+                        while (true)
+                        {
+                            var resampledAudio = _resampler.ReadFrame();
+                            if (resampledAudio.Data == IntPtr.Zero)
+                            {
+                                break;
+                            }
+                            Console.WriteLine("Sending audio " + frame.Timestamp);
+                            await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(MapAudio(frame)), ImmutableList<VideoMediaBuffer>.Empty);
+                        }
                     }
                 }
                 else
@@ -68,6 +89,7 @@ public class StreamingSession : IAsyncDisposable
         {
             await _semaphore.WaitAsync();
             _buffer.Dispose();
+            _resampler.Dispose();
             _demuxer.Dispose();
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();
@@ -81,6 +103,14 @@ public class StreamingSession : IAsyncDisposable
         }
     }
 
+    private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
+    {
+        if (args.MediaSendStatus == MediaSendStatus.Active)
+        {
+            _audioSocketActive.TrySetResult(true);
+        }
+    }
+
     private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args)
     {
         if (args.MediaSendStatus == MediaSendStatus.Active)
@@ -89,12 +119,7 @@ public class StreamingSession : IAsyncDisposable
         }
     }
 
-    private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
-    {
-        if (args.MediaSendStatus == MediaSendStatus.Active)
-        {
-        }
-    }
+    private static VideoBuffer MapVideo(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
 
-    private static VideoBuffer Map(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
+    private static AudioBuffer MapAudio(Frame frame) => new(frame, AudioFormat.Pcm16K);
 }

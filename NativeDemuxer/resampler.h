@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "common.h"
 
 extern "C" {
 #include <libswresample/swresample.h>
@@ -8,6 +9,7 @@ class resampler
 {
     SwrContext* resample_context_;
     int src_rate_;
+    int src_timestamp_;
     int dst_rate_;
     uint8_t** dst_data_;
     int dst_bufsize_;
@@ -21,7 +23,7 @@ class resampler
 public:
     resampler();
 
-    void write_frame(const uint8_t* frame, int length);
+    void write_frame(const uint8_t* frame, int length, int timestamp);
 
-    uint8_t* read_frame(int* length);
+    uint8_t* read_frame(frame_metadata* metadata);
 };

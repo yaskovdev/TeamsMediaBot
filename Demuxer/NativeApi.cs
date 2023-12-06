@@ -36,10 +36,10 @@ internal static class NativeResamplerApi
     internal static extern IntPtr CreateResampler();
 
     [DllImport("NativeDemuxer.dll", EntryPoint = "resampler_write_frame")]
-    internal static extern void WriteFrame(IntPtr resampler, byte[] frame, int length);
+    internal static extern void WriteFrame(IntPtr resampler, IntPtr frame, int length, int timestamp);
 
     [DllImport("NativeDemuxer.dll", EntryPoint = "resampler_read_frame")]
-    internal static extern IntPtr ReadFrame(IntPtr resampler, ref int length);
+    internal static extern IntPtr ReadFrame(IntPtr resampler, ref FrameMetadata metadata);
 
     [DllImport("NativeDemuxer.dll", EntryPoint = "resampler_delete")]
     internal static extern void DeleteResampler(IntPtr resampler);

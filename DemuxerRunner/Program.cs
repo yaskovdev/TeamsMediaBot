@@ -14,20 +14,34 @@ internal static class Program
         using var output = File.Open(@"c:\dev\experiment3\output.pcm", FileMode.Create);
         foreach (var chunk in chunks)
         {
-            instanceUnderTest.WriteFrame(chunk.Buffer);
-            while (true)
+            var handle = GCHandle.Alloc(chunk.Buffer, GCHandleType.Pinned);
+            try
             {
-                var frame = instanceUnderTest.ReadFrame();
-                if (frame.Data == IntPtr.Zero)
+                instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, 1);
+                while (true)
                 {
-                    break;
+                    var frame = instanceUnderTest.ReadFrame();
+                    if (frame.Data == IntPtr.Zero)
+                    {
+                        break;
+                    }
+                    Console.WriteLine("Read frame of length " + frame.Size + " with timestamp " + frame.Timestamp);
+                    var buffer = ToArray(frame.Data, (int)frame.Size);
+                    output.Write(buffer);
                 }
-                Console.WriteLine("Read frame of length " + frame.Size);
-                var buffer = new byte[frame.Size];
-                Marshal.Copy(frame.Data, buffer, 0, (int)frame.Size);
-                output.Write(buffer);
+            }
+            finally
+            {
+                handle.Free();
             }
         }
+    }
+
+    private static byte[] ToArray(IntPtr data, int length)
+    {
+        var buffer = new byte[length];
+        Marshal.Copy(data, buffer, 0, length);
+        return buffer;
     }
 
     private static List<Chunk> ReadChunks()
