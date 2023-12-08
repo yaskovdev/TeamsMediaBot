@@ -58,7 +58,7 @@ public class StreamingSession : IAsyncDisposable
                         // Console.WriteLine("Sending audio " + frame.Size);
                         // _audioSocket.Send(MapAudio(frame));
                         // Console.WriteLine("Done sending audio");
-                        _resampler.WriteFrame(frame.Data, (int)frame.Size, frame.Timestamp.Milliseconds);
+                        _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds);
                         while (true)
                         {
                             var resampledAudio = _resampler.ReadFrame();

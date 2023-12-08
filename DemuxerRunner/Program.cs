@@ -17,7 +17,7 @@ internal static class Program
             var handle = GCHandle.Alloc(chunk.Buffer, GCHandleType.Pinned);
             try
             {
-                instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, 1);
+                instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, (int)chunk.Timestamp.TotalMilliseconds);
                 while (true)
                 {
                     var frame = instanceUnderTest.ReadFrame();
@@ -25,7 +25,7 @@ internal static class Program
                     {
                         break;
                     }
-                    Console.WriteLine("Read frame of length " + frame.Size + " with timestamp " + frame.Timestamp);
+                    Console.WriteLine("Read frame of length " + frame.Size + " with timestamp in ms " + (int) frame.Timestamp.TotalMilliseconds);
                     var buffer = ToArray(frame.Data, (int)frame.Size);
                     output.Write(buffer);
                 }
