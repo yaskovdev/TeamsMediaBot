@@ -42,7 +42,7 @@ public class BrowserLauncher
             $"--load-extension={extensionPath}",
             $"--disable-extensions-except={extensionPath}",
             $"--allowlisted-extension-id={ExtensionConstants.ExtensionId}",
-            "--headless=new",
+            // "--headless=new",
             "--hide-scrollbars"
         };
         return new LaunchOptions { Headless = false, Args = browserArgs, ExecutablePath = chromeExecutablePath };

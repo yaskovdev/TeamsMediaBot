@@ -19,8 +19,8 @@ public class StreamingSession : IAsyncDisposable
     private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private bool _disposed;
-    private AudioVideoFramePlayer? _player;
+    // private bool _disposed;
+    // private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
@@ -33,54 +33,73 @@ public class StreamingSession : IAsyncDisposable
         _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
-        _ = StartStreaming();
+        _ = StartStreaming(); // TODO: log exception if any
     }
 
     private async Task StartStreaming()
     {
-        await Task.WhenAll(_audioSocketActive.Task, _videoSocketActive.Task);
-        var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 0);
-        _player = new AudioVideoFramePlayer((AudioSocket)_audioSocket, (VideoSocket)_videoSocket, playerSettings);
+        Console.WriteLine("Waiting for the socket to become active");
+        await _audioSocketActive.Task;
+        // var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 0);
+        // _player = new AudioVideoFramePlayer((AudioSocket)_audioSocket, (VideoSocket)_videoSocket, playerSettings);
+        Console.WriteLine("Creating buffers");
+        List<AudioMediaBuffer> buffers = DummyAudioPlayer.CreateAudioMediaBuffers();
+        int i = 0;
         while (true)
         {
-            try
+            Console.WriteLine("Sending buffers");
+            foreach (var buffer in buffers.Take(new Range(50 * i, 50 * (i + 1) - 1)))
             {
-                await _semaphore.WaitAsync();
-                if (!_disposed)
-                {
-                    var frame = _demuxer.ReadFrame();
-                    if (frame.Type == FrameType.Video)
-                    {
-                        await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty, ImmutableList<VideoMediaBuffer>.Empty.Add(MapVideo(frame)));
-                    }
-                    else
-                    {
-                        // Console.WriteLine("Sending audio " + frame.Size);
-                        // _audioSocket.Send(MapAudio(frame));
-                        // Console.WriteLine("Done sending audio");
-                        _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds);
-                        while (true)
-                        {
-                            var resampledAudio = _resampler.ReadFrame();
-                            if (resampledAudio.Data == IntPtr.Zero)
-                            {
-                                break;
-                            }
-                            Console.WriteLine("Sending audio " + frame.Timestamp);
-                            await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(MapAudio(frame)), ImmutableList<VideoMediaBuffer>.Empty);
-                        }
-                    }
-                }
-                else
-                {
-                    return;
-                }
+                _audioSocket.Send(buffer);
             }
-            finally
-            {
-                _semaphore.Release();
-            }
+            await Task.Delay(1000);
+            i += 1;
         }
+        // await _player.EnqueueBuffersAsync(buffers, ImmutableList<VideoMediaBuffer>.Empty);
+        // while (true)
+        // {
+        //     try
+        //     {
+        //         await _semaphore.WaitAsync();
+        //         if (!_disposed)
+        //         {
+        //             var frame = _demuxer.ReadFrame();
+        //             if (frame.Type == FrameType.Video)
+        //             {
+        //                 // await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(buffers[i++]), ImmutableList<VideoMediaBuffer>.Empty.Add(MapVideo(frame)));
+        //                 if (i == buffers.Count)
+        //                 {
+        //                     i = 0;
+        //                 }
+        //             }
+        //             else
+        //             {
+        //                 // Console.WriteLine("Sending audio " + frame.Size);
+        //                 _audioSocket.Send(MapAudio(frame));
+        //                 // Console.WriteLine("Done sending audio");
+        //                 // _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds);
+        //                 // while (true)
+        //                 // {
+        //                 //     var resampledAudio = _resampler.ReadFrame();
+        //                 //     if (resampledAudio.Data == IntPtr.Zero)
+        //                 //     {
+        //                 //         break;
+        //                 //     }
+        //                 //     Console.WriteLine("Sending audio " + frame.Timestamp);
+        //                 //     await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(MapAudio(frame)), ImmutableList<VideoMediaBuffer>.Empty);
+        //                 // }
+        //             }
+        //         }
+        //         else
+        //         {
+        //             return;
+        //         }
+        //     }
+        //     finally
+        //     {
+        //         _semaphore.Release();
+        //     }
+        // }
     }
 
     public async ValueTask DisposeAsync()
@@ -97,7 +116,7 @@ public class StreamingSession : IAsyncDisposable
         }
         finally
         {
-            _disposed = true;
+            // _disposed = true;
             _semaphore.Release();
             _semaphore.Dispose();
         }

@@ -74,7 +74,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         };
         var videoSocketSettings = new VideoSocketSettings
         {
-            StreamDirections = StreamDirection.Sendonly,
+            StreamDirections = StreamDirection.Recvonly,
             ReceiveColorFormat = VideoColorFormat.NV12,
             SupportedSendVideoFormats = SupportedSendVideoFormats
         };
