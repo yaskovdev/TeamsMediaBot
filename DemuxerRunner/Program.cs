@@ -9,7 +9,7 @@ internal static class Program
 {
     public static void Main(string[] args)
     {
-        using var instanceUnderTest = new Resampler();
+        using var resampler = new Resampler();
         List<Chunk> chunks = ReadChunks();
         using var output = File.Open(@"c:\dev\experiment3\output.pcm", FileMode.Create);
         foreach (var chunk in chunks)
@@ -17,15 +17,15 @@ internal static class Program
             var handle = GCHandle.Alloc(chunk.Buffer, GCHandleType.Pinned);
             try
             {
-                instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, (int)chunk.Timestamp.TotalMilliseconds);
+                resampler.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, (int)chunk.Timestamp.TotalMilliseconds);
                 while (true)
                 {
-                    var frame = instanceUnderTest.ReadFrame();
+                    var frame = resampler.ReadFrame();
                     if (frame.Data == IntPtr.Zero)
                     {
                         break;
                     }
-                    Console.WriteLine("Read frame of length " + frame.Size + " with timestamp in ms " + (int) frame.Timestamp.TotalMilliseconds);
+                    Console.WriteLine("Read frame of length " + frame.Size + " with timestamp in ms " + (int)frame.Timestamp.TotalMilliseconds);
                     var buffer = ToArray(frame.Data, (int)frame.Size);
                     output.Write(buffer);
                 }
