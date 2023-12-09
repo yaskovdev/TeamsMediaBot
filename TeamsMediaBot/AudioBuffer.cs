@@ -21,7 +21,7 @@ public class AudioBuffer : AudioMediaBuffer
     {
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            _source.Dispose();
+            // _source.Dispose(); // TODO: fix the dispose
         }
     }
 }

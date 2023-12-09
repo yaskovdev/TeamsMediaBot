@@ -1,12 +1,10 @@
 ﻿namespace TeamsMediaBot;
 
-using System.Collections.Immutable;
 using BrowserAudioVideoCapturingService;
 using Demuxer;
 using Microsoft.Graph.Communications.Calls.Media;
 using Microsoft.Skype.Bots.Media;
 using PuppeteerSharp;
-using Frame = Demuxer.Frame;
 
 public class StreamingSession : IAsyncDisposable
 {
@@ -18,6 +16,9 @@ public class StreamingSession : IAsyncDisposable
     private readonly IVideoSocket _videoSocket;
     private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
+    private readonly Player _player;
+    private bool _disposed;
+
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     // private bool _disposed;
     // private AudioVideoFramePlayer? _player;
@@ -33,73 +34,51 @@ public class StreamingSession : IAsyncDisposable
         _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
+        _player = new Player(_audioSocket, _videoSocket, 15); // TODO: read FPS from config, same in BrowserAudioVideoCapturingService.Constants
         _ = StartStreaming(); // TODO: log exception if any
     }
 
     private async Task StartStreaming()
     {
-        Console.WriteLine("Waiting for the socket to become active");
-        await _audioSocketActive.Task;
-        // var playerSettings = new AudioVideoFramePlayerSettings(new AudioSettings(20), new VideoSettings(), 0);
-        // _player = new AudioVideoFramePlayer((AudioSocket)_audioSocket, (VideoSocket)_videoSocket, playerSettings);
-        Console.WriteLine("Creating buffers");
-        List<AudioMediaBuffer> buffers = DummyAudioPlayer.CreateAudioMediaBuffers();
-        int i = 0;
+        Console.WriteLine("Waiting for the sockets to become active");
+        await Task.WhenAll(_audioSocketActive.Task, _videoSocketActive.Task);
+        Console.WriteLine("Sockets are active");
         while (true)
         {
-            Console.WriteLine("Sending buffers");
-            foreach (var buffer in buffers.Take(new Range(50 * i, 50 * (i + 1) - 1)))
+            try
             {
-                _audioSocket.Send(buffer);
+                await _semaphore.WaitAsync();
+                if (!_disposed)
+                {
+                    var frame = _demuxer.ReadFrame();
+                    if (frame.Type == FrameType.Video)
+                    {
+                        _player.Enqueue(frame);
+                    }
+                    else if (frame.Type == FrameType.Audio)
+                    {
+                        _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds); // TODO: timestamp is not needed here
+                        while (true)
+                        {
+                            var resampledAudio = _resampler.ReadFrame();
+                            if (resampledAudio.Data == IntPtr.Zero)
+                            {
+                                break;
+                            }
+                            _player.Enqueue(resampledAudio);
+                        }
+                    }
+                }
+                else
+                {
+                    return;
+                }
             }
-            await Task.Delay(1000);
-            i += 1;
+            finally
+            {
+                _semaphore.Release();
+            }
         }
-        // await _player.EnqueueBuffersAsync(buffers, ImmutableList<VideoMediaBuffer>.Empty);
-        // while (true)
-        // {
-        //     try
-        //     {
-        //         await _semaphore.WaitAsync();
-        //         if (!_disposed)
-        //         {
-        //             var frame = _demuxer.ReadFrame();
-        //             if (frame.Type == FrameType.Video)
-        //             {
-        //                 // await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(buffers[i++]), ImmutableList<VideoMediaBuffer>.Empty.Add(MapVideo(frame)));
-        //                 if (i == buffers.Count)
-        //                 {
-        //                     i = 0;
-        //                 }
-        //             }
-        //             else
-        //             {
-        //                 // Console.WriteLine("Sending audio " + frame.Size);
-        //                 _audioSocket.Send(MapAudio(frame));
-        //                 // Console.WriteLine("Done sending audio");
-        //                 // _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds);
-        //                 // while (true)
-        //                 // {
-        //                 //     var resampledAudio = _resampler.ReadFrame();
-        //                 //     if (resampledAudio.Data == IntPtr.Zero)
-        //                 //     {
-        //                 //         break;
-        //                 //     }
-        //                 //     Console.WriteLine("Sending audio " + frame.Timestamp);
-        //                 //     await _player.EnqueueBuffersAsync(ImmutableList<AudioMediaBuffer>.Empty.Add(MapAudio(frame)), ImmutableList<VideoMediaBuffer>.Empty);
-        //                 // }
-        //             }
-        //         }
-        //         else
-        //         {
-        //             return;
-        //         }
-        //     }
-        //     finally
-        //     {
-        //         _semaphore.Release();
-        //     }
-        // }
     }
 
     public async ValueTask DisposeAsync()
@@ -116,7 +95,7 @@ public class StreamingSession : IAsyncDisposable
         }
         finally
         {
-            // _disposed = true;
+            _disposed = true;
             _semaphore.Release();
             _semaphore.Dispose();
         }
@@ -137,8 +116,4 @@ public class StreamingSession : IAsyncDisposable
             _videoSocketActive.TrySetResult(true);
         }
     }
-
-    private static VideoBuffer MapVideo(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
-
-    private static AudioBuffer MapAudio(Frame frame) => new(frame, AudioFormat.Pcm16K);
 }

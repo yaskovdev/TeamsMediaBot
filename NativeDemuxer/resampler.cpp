@@ -25,7 +25,6 @@ void resampler::write_frame(const uint8_t* frame, const int length, const int ti
 {
     const int src_nb_samples = length / av_get_bytes_per_sample(src_sample_format_);
     dst_nb_samples_ = av_rescale_rnd(swr_get_delay(resample_context_, src_rate_) + src_nb_samples, dst_rate_, src_rate_, AV_ROUND_UP);
-    std::cout << "dst_nb_samples_ is " << dst_nb_samples_ << "\n";
     if (dst_nb_samples_ > max_dst_nb_samples_)
     {
         av_freep(&dst_data_[0]);
