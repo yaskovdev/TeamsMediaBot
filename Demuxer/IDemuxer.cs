@@ -2,5 +2,5 @@
 
 public interface IDemuxer : IDisposable
 {
-    Frame ReadFrame();
+    AbstractFrame ReadFrame();
 }

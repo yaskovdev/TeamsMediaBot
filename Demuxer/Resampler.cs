@@ -15,7 +15,7 @@ public class Resampler : IResampler
         NativeResamplerApi.WriteFrame(_resampler, bytes, length, timestamp);
     }
 
-    public Frame ReadFrame()
+    public AbstractFrame ReadFrame()
     {
         while (true)
         {

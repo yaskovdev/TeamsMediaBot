@@ -5,10 +5,9 @@ using Microsoft.Skype.Bots.Media;
 
 public class VideoBuffer : VideoMediaBuffer
 {
-    private readonly Frame _source;
-    private int _disposed;
+    private readonly AbstractFrame _source;
 
-    public VideoBuffer(Frame source, VideoFormat format)
+    public VideoBuffer(AbstractFrame source, VideoFormat format)
     {
         _source = source;
         Data = _source.Data;
@@ -19,9 +18,6 @@ public class VideoBuffer : VideoMediaBuffer
 
     protected override void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _disposed, 1) == 0)
-        {
-            _source.Dispose();
-        }
+        _source.Dispose();
     }
 }

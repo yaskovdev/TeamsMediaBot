@@ -1,22 +1,20 @@
 ﻿namespace Demuxer;
 
-public class Frame : IDisposable
+using System.Runtime.InteropServices;
+
+public class Frame : AbstractFrame
 {
-    public FrameType Type { get; }
+    private int _disposed;
 
-    public IntPtr Data { get; }
-
-    public ulong Size { get; }
-
-    public TimeSpan Timestamp { get; }
-
-    public Frame(FrameType type, IntPtr data, ulong size, TimeSpan timestamp)
+    public Frame(FrameType type, IntPtr data, ulong size, TimeSpan timestamp) : base(type, data, size, timestamp)
     {
-        Type = type;
-        Data = data;
-        Size = size;
-        Timestamp = timestamp;
     }
 
-    public void Dispose() => NativeDemuxerApi.DeleteFrameBuffer(Data);
+    public override void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            Marshal.FreeHGlobal(Data);
+        }
+    }
 }

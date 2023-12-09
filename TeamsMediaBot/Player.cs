@@ -1,5 +1,6 @@
 ﻿namespace TeamsMediaBot;
 
+using System.Collections.Concurrent;
 using Demuxer;
 using Microsoft.Skype.Bots.Media;
 
@@ -9,8 +10,8 @@ public class Player : IAsyncDisposable
     private readonly Timer _timer;
     private readonly int _audioFps;
     private readonly int _videoFps;
-    private readonly Queue<Frame> _audioQueue = new();
-    private readonly Queue<Frame> _videoQueue = new();
+    private readonly ConcurrentQueue<AbstractFrame> _audioQueue = new();
+    private readonly ConcurrentQueue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
     private int _count;
@@ -26,7 +27,7 @@ public class Player : IAsyncDisposable
         _timer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(1).Divide(_videoFps));
     }
 
-    public void Enqueue(Frame frame)
+    public void Enqueue(AbstractFrame frame)
     {
         if (frame.Type == FrameType.Audio)
         {
@@ -51,12 +52,18 @@ public class Player : IAsyncDisposable
         }
         else
         {
-            _videoSocket.Send(MapVideo(_videoQueue.Dequeue()));
+            if (_videoQueue.TryDequeue(out var videoFrame))
+            {
+                _videoSocket.Send(MapVideo(videoFrame));
+            }
             if (_count == 0)
             {
                 for (var i = 0; i < 50; i++)
                 {
-                    _audioSocket.Send(MapAudio(_audioQueue.Dequeue()));
+                    if (_audioQueue.TryDequeue(out var audioFrame))
+                    {
+                        _audioSocket.Send(MapAudio(audioFrame));
+                    }
                 }
             }
             _count = (_count + 1) % _videoFps;
@@ -65,7 +72,7 @@ public class Player : IAsyncDisposable
 
     public async ValueTask DisposeAsync() => await _timer.DisposeAsync();
 
-    private static AudioBuffer MapAudio(Frame frame) => new(frame, AudioFormat.Pcm16K);
+    private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
 
-    private static VideoBuffer MapVideo(Frame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
+    private static VideoBuffer MapVideo(AbstractFrame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
 }

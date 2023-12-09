@@ -15,11 +15,11 @@ public class Demuxer : IDemuxer
         _demuxer = NativeDemuxerApi.CreateDemuxer(_callback);
     }
 
-    public Frame ReadFrame()
+    public AbstractFrame ReadFrame()
     {
         var metadata = new FrameMetadata();
         var data = NativeDemuxerApi.ReadFrame(_demuxer, ref metadata);
-        return new Frame(metadata.Type, data, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp));
+        return new NativeFrame(metadata.Type, data, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp)); // TODO: use the same approach with timestamps as in the resampler?
     }
 
     public void Dispose()

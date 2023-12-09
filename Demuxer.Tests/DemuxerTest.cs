@@ -41,9 +41,9 @@ public class DemuxerTest
         }
     }
 
-    private static IImmutableList<Frame> ReadFrames(IDemuxer instanceUnderTest)
+    private static IImmutableList<AbstractFrame> ReadFrames(IDemuxer instanceUnderTest)
     {
-        var frames = new List<Frame>();
+        var frames = new List<AbstractFrame>();
         for (var i = 0; i < ExpectedNumberOfFrames; i++)
         {
             frames.Add(instanceUnderTest.ReadFrame());

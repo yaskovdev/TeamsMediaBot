@@ -5,10 +5,9 @@ using Microsoft.Skype.Bots.Media;
 
 public class AudioBuffer : AudioMediaBuffer
 {
-    private readonly Frame _source;
-    private int _disposed;
+    private readonly AbstractFrame _source;
 
-    public AudioBuffer(Frame source, AudioFormat format)
+    public AudioBuffer(AbstractFrame source, AudioFormat format)
     {
         _source = source;
         Data = _source.Data;
@@ -19,9 +18,6 @@ public class AudioBuffer : AudioMediaBuffer
 
     protected override void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _disposed, 1) == 0)
-        {
-            // _source.Dispose(); // TODO: fix the dispose
-        }
+        _source.Dispose();
     }
 }
