@@ -57,7 +57,7 @@ public class StreamingSession : IAsyncDisposable
                     }
                     else if (frame.Type == FrameType.Audio)
                     {
-                        _resampler.WriteFrame(frame.Data, (int)frame.Size, (int)frame.Timestamp.TotalMilliseconds); // TODO: timestamp is not needed here
+                        _resampler.WriteFrame(frame.Data, (int)frame.Size);
                         while (true)
                         {
                             var resampledAudio = _resampler.ReadFrame();
@@ -86,6 +86,7 @@ public class StreamingSession : IAsyncDisposable
         try
         {
             await _semaphore.WaitAsync();
+            await _player.DisposeAsync();
             _buffer.Dispose();
             _resampler.Dispose();
             _demuxer.Dispose();

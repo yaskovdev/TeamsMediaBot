@@ -5,9 +5,9 @@ resampler* resampler_create()
     return new resampler();
 }
 
-void resampler_write_frame(resampler* resampler, const uint8_t* frame, const int length, const int timestamp)
+void resampler_write_frame(resampler* resampler, const uint8_t* frame, const int length)
 {
-    resampler->write_frame(frame, length, timestamp);
+    resampler->write_frame(frame, length);
 }
 
 uint8_t* resampler_read_frame(resampler* resampler, frame_metadata* metadata)

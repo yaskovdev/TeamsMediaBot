@@ -2,6 +2,8 @@
 
 public abstract class AbstractFrame : IDisposable
 {
+    private int _disposed;
+
     public FrameType Type { get; }
 
     public IntPtr Data { get; }
@@ -18,5 +20,13 @@ public abstract class AbstractFrame : IDisposable
         Timestamp = timestamp;
     }
 
-    public abstract void Dispose();
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            Dispose(true);
+        }
+    }
+
+    protected abstract void Dispose(bool disposing);
 }

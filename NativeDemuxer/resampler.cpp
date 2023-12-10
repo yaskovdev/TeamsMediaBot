@@ -9,7 +9,6 @@ extern "C" {
 #include "libavutil/samplefmt.h"
 }
 
-// TODO: should src_ch_layout_ be AV_CHANNEL_LAYOUT_MONO?
 resampler::resampler() : src_rate_(48000), src_sample_format_(AV_SAMPLE_FMT_FLT), dst_rate_(16000), dst_sample_format_(AV_SAMPLE_FMT_S16), dst_nb_samples_(1),
     src_ch_layout_(AV_CHANNEL_LAYOUT_MONO), dst_ch_layout_(AV_CHANNEL_LAYOUT_MONO), frame_consumed_(false)
 {
@@ -21,7 +20,7 @@ resampler::resampler() : src_rate_(48000), src_sample_format_(AV_SAMPLE_FMT_FLT)
     ASSERT_NON_NEGATIVE(swr_init(resample_context_), "Cannot initialize SWR context");
 }
 
-void resampler::write_frame(const uint8_t* frame, const int length, const int timestamp)
+void resampler::write_frame(const uint8_t* frame, const int length)
 {
     const int src_nb_samples = length / av_get_bytes_per_sample(src_sample_format_);
     dst_nb_samples_ = av_rescale_rnd(swr_get_delay(resample_context_, src_rate_) + src_nb_samples, dst_rate_, src_rate_, AV_ROUND_UP);
@@ -35,7 +34,6 @@ void resampler::write_frame(const uint8_t* frame, const int length, const int ti
     ASSERT_NON_NEGATIVE(samples_per_channel, "Cannot convert audio");
     dst_bufsize_ = av_samples_get_buffer_size(&dst_linesize_, dst_ch_layout_.nb_channels, samples_per_channel, dst_sample_format_, 1);
     ASSERT_NON_NEGATIVE(dst_bufsize_, "Cannot calculate dst buffer size");
-    src_timestamp_ = timestamp;
     frame_consumed_ = false;
 }
 
@@ -50,6 +48,5 @@ uint8_t* resampler::read_frame(frame_metadata* metadata)
     memcpy(decoded_data.get(), dst_data_[0], dst_bufsize_);
     metadata->type = 1;
     metadata->size = dst_bufsize_;
-    metadata->timestamp = src_timestamp_;
     return decoded_data.release();
 }

@@ -14,7 +14,7 @@ public class ResamplerTest
         var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         try
         {
-            instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), bytes.Length, 0);
+            instanceUnderTest.WriteFrame(handle.AddrOfPinnedObject(), bytes.Length);
             while (true)
             {
                 var frame = instanceUnderTest.ReadFrame();

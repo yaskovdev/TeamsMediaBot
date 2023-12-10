@@ -10,7 +10,6 @@ class resampler
     SwrContext* resample_context_;
     int src_rate_;
     AVSampleFormat src_sample_format_;
-    int src_timestamp_;
     int dst_rate_;
     AVSampleFormat dst_sample_format_;
     uint8_t** dst_data_;
@@ -25,7 +24,7 @@ class resampler
 public:
     resampler();
 
-    void write_frame(const uint8_t* frame, int length, int timestamp);
+    void write_frame(const uint8_t* frame, int length);
 
     uint8_t* read_frame(frame_metadata* metadata);
 };

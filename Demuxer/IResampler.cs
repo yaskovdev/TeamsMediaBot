@@ -2,7 +2,7 @@
 
 public interface IResampler : IDisposable
 {
-    void WriteFrame(IntPtr bytes, int length, int timestamp);
+    void WriteFrame(IntPtr bytes, int length);
 
     AbstractFrame ReadFrame();
 }

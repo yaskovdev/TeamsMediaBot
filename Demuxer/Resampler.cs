@@ -10,9 +10,9 @@ public class Resampler : IResampler
     private readonly CircularBuffer _outputBuffer = new(512 * 1024);
     private int _outputCount;
 
-    public void WriteFrame(IntPtr bytes, int length, int timestamp)
+    public void WriteFrame(IntPtr bytes, int length)
     {
-        NativeResamplerApi.WriteFrame(_resampler, bytes, length, timestamp);
+        NativeResamplerApi.WriteFrame(_resampler, bytes, length);
     }
 
     public AbstractFrame ReadFrame()

@@ -27,8 +27,7 @@ public class JoinUrlParser : IJoinUrlParser
     {
         var queryParams = HttpUtility.ParseQueryString(joinUrl.Query);
         var contextAsJson = queryParams.Get("context") ?? throw new Exception("Join URL must have a context query param");
-        var context = JsonConvert.DeserializeObject<Context>(contextAsJson) ?? throw new Exception("Cannot deserialize context from join URL");
-        return context;
+        return JsonConvert.DeserializeObject<Context>(contextAsJson) ?? throw new Exception("Cannot deserialize context from join URL");
     }
 
     private static string UrlSegment(Uri joinUrl, int index) => HttpUtility.UrlDecode(joinUrl.Segments[index].TrimEnd('/'));

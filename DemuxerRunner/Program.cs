@@ -17,7 +17,7 @@ internal static class Program
             var handle = GCHandle.Alloc(chunk.Buffer, GCHandleType.Pinned);
             try
             {
-                resampler.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length, (int)chunk.Timestamp.TotalMilliseconds);
+                resampler.WriteFrame(handle.AddrOfPinnedObject(), chunk.Buffer.Length);
                 while (true)
                 {
                     var frame = resampler.ReadFrame();
