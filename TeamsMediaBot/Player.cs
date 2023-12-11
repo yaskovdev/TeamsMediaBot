@@ -39,7 +39,7 @@ public class Player : IDisposable
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            _ = StartPlaying();
+            _ = StartPlaying(); // TODO: log possible exceptions
         }
     }
 
@@ -69,7 +69,11 @@ public class Player : IDisposable
         AbstractFrame? frame = null;
         while (queue.TryPeek(out var head) && head.Timestamp <= time)
         {
-            frame?.Dispose();
+            if (frame is not null)
+            {
+                Console.WriteLine($"Skipping a frame of type {frame.Type}");
+                frame.Dispose();
+            }
             queue.TryDequeue(out frame);
         }
         return frame;
