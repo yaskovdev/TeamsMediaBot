@@ -13,6 +13,7 @@ public class Player : IAsyncDisposable
     private readonly IVideoSocket _videoSocket;
     private int _playing;
     private int _disposed;
+    private int _count;
 
     public Player(IAudioSocket audioSocket, IVideoSocket videoSocket)
     {
@@ -22,6 +23,10 @@ public class Player : IAsyncDisposable
 
     public async Task Enqueue(AbstractFrame frame)
     {
+        if (_count % 1000 == 0)
+        {
+            Console.WriteLine($"Audio queue size is {_audioQueue.Count}, video queue size is {_videoQueue.Count}");
+        }
         try
         {
             await _semaphore.WaitAsync();
@@ -43,6 +48,7 @@ public class Player : IAsyncDisposable
         {
             _ = StartPlaying(); // TODO: log possible exceptions
         }
+        Interlocked.Increment(ref _count);
     }
 
     private async Task StartPlaying()
@@ -54,15 +60,21 @@ public class Player : IAsyncDisposable
             try
             {
                 await _semaphore.WaitAsync();
-                var audioFrame = Forward(_audioQueue, stopwatch.Elapsed);
-                if (audioFrame is not null)
+                while (_audioQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
                 {
-                    _audioSocket.Send(MapAudio(audioFrame));
+                    _audioSocket.Send(MapAudio(_audioQueue.Dequeue()));
                 }
-                var videoFrame = Forward(_videoQueue, stopwatch.Elapsed);
-                if (videoFrame is not null)
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+            try
+            {
+                await _semaphore.WaitAsync();
+                while (_videoQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
                 {
-                    _videoSocket.Send(MapVideo(videoFrame));
+                    _videoSocket.Send(MapVideo(_videoQueue.Dequeue()));
                 }
             }
             finally
@@ -86,21 +98,6 @@ public class Player : IAsyncDisposable
             _semaphore.Release();
         }
         _semaphore.Dispose();
-    }
-
-    private static AbstractFrame? Forward(Queue<AbstractFrame> queue, TimeSpan time)
-    {
-        AbstractFrame? frame = null;
-        while (queue.TryPeek(out var head) && head.Timestamp <= time)
-        {
-            if (frame is not null)
-            {
-                Console.WriteLine($"Skipping a frame of type {frame.Type}"); // TODO: now when the cycle runs as fast as possible there is probably no need to skip anything, since it will likely keep up
-                frame.Dispose();
-            }
-            queue.TryDequeue(out frame);
-        }
-        return frame;
     }
 
     private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
