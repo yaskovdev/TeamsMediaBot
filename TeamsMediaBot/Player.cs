@@ -52,29 +52,12 @@ public class Player : IAsyncDisposable
         {
             try
             {
-                await _semaphore.WaitAsync();
-                if (_disposed) break;
-                while (_audioQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
-                {
-                    _audioSocket.Send(MapAudio(_audioQueue.Dequeue()));
-                }
+                await Dequeue(_audioQueue, SendAudio, stopwatch.Elapsed);
+                await Dequeue(_videoQueue, SendVideo, stopwatch.Elapsed);
             }
-            finally
+            catch (ObjectDisposedException)
             {
-                _semaphore.Release();
-            }
-            try
-            {
-                await _semaphore.WaitAsync();
-                if (_disposed) break;
-                while (_videoQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
-                {
-                    _videoSocket.Send(MapVideo(_videoQueue.Dequeue()));
-                }
-            }
-            finally
-            {
-                _semaphore.Release();
+                break;
             }
         }
         stopwatch.Stop();
@@ -94,6 +77,23 @@ public class Player : IAsyncDisposable
         _semaphore.Dispose();
     }
 
+    private async Task Dequeue(Queue<AbstractFrame> queue, Action<AbstractFrame> action, TimeSpan time)
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+            if (_disposed) throw new ObjectDisposedException(nameof(Player));
+            while (queue.TryPeek(out var head) && head.Timestamp <= time)
+            {
+                action(queue.Dequeue());
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
     private async Task Enqueue(Queue<AbstractFrame> queue, AbstractFrame frame)
     {
         try
@@ -107,7 +107,7 @@ public class Player : IAsyncDisposable
         }
     }
 
-    private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
+    private void SendAudio(AbstractFrame frame) => _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
 
-    private static VideoBuffer MapVideo(AbstractFrame frame) => new(frame, VideoFormat.NV12_1920x1080_15Fps);
+    private void SendVideo(AbstractFrame frame) => _videoSocket.Send(new VideoBuffer(frame, VideoFormat.NV12_1920x1080_15Fps));
 }
