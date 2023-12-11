@@ -37,7 +37,7 @@ public class Player : IDisposable
             _videoQueue.Enqueue(frame);
         }
 
-        if (Interlocked.Exchange(ref _playing, 1) == 0) // TODO: probably wait for a longer queue, not just for the very first enqueued frame.
+        if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
             _ = StartPlaying();
         }
@@ -45,23 +45,35 @@ public class Player : IDisposable
 
     private async Task StartPlaying()
     {
+        await Task.Delay(TimeSpan.FromSeconds(4)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
         while (await _timer.WaitForNextTickAsync())
         {
-            while (_audioQueue.TryPeek(out var next) && next.Timestamp <= Now) // TODO: DRY
+            var audioFrame = Forward(_audioQueue, Now);
+            if (audioFrame is not null)
             {
-                _audioQueue.TryDequeue(out _);
-                _audioSocket.Send(MapAudio(next)); // TODO: probably send only the last one to be able to keep up? And dispose of the others. Same for video.
+                _audioSocket.Send(MapAudio(audioFrame));
             }
-            while (_videoQueue.TryPeek(out var next) && next.Timestamp <= Now)
+            var videoFrame = Forward(_videoQueue, Now);
+            if (videoFrame is not null)
             {
-                _videoQueue.TryDequeue(out _);
-                _videoSocket.Send(MapVideo(next));
+                _videoSocket.Send(MapVideo(videoFrame));
             }
             Interlocked.Increment(ref _tick);
         }
     }
 
     public void Dispose() => _timer.Dispose(); // TODO: need to synchronize with StartPlaying() to guarantee that once Dispose() returns no frames will be sent to sockets
+
+    private static AbstractFrame? Forward(ConcurrentQueue<AbstractFrame> queue, TimeSpan time)
+    {
+        AbstractFrame? frame = null;
+        while (queue.TryPeek(out var head) && head.Timestamp <= time)
+        {
+            frame?.Dispose();
+            queue.TryDequeue(out frame);
+        }
+        return frame;
+    }
 
     private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
 
