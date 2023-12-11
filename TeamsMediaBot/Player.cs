@@ -12,7 +12,7 @@ public class Player : IAsyncDisposable
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
     private int _playing;
-    private int _disposed;
+    private bool _disposed;
     private int _count;
 
     public Player(IAudioSocket audioSocket, IVideoSocket videoSocket)
@@ -27,21 +27,14 @@ public class Player : IAsyncDisposable
         {
             Console.WriteLine($"Audio queue size is {_audioQueue.Count}, video queue size is {_videoQueue.Count}");
         }
-        try
+
+        if (frame.Type == FrameType.Audio)
         {
-            await _semaphore.WaitAsync();
-            if (frame.Type == FrameType.Audio)
-            {
-                _audioQueue.Enqueue(frame);
-            }
-            else if (frame.Type == FrameType.Video)
-            {
-                _videoQueue.Enqueue(frame);
-            }
+            await Enqueue(_audioQueue, frame);
         }
-        finally
+        else if (frame.Type == FrameType.Video)
         {
-            _semaphore.Release();
+            await Enqueue(_videoQueue, frame);
         }
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
@@ -55,11 +48,12 @@ public class Player : IAsyncDisposable
     {
         await Task.Delay(TimeSpan.FromSeconds(4)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
         var stopwatch = Stopwatch.StartNew();
-        while (_disposed == 0)
+        while (true)
         {
             try
             {
                 await _semaphore.WaitAsync();
+                if (_disposed) break;
                 while (_audioQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
                 {
                     _audioSocket.Send(MapAudio(_audioQueue.Dequeue()));
@@ -72,6 +66,7 @@ public class Player : IAsyncDisposable
             try
             {
                 await _semaphore.WaitAsync();
+                if (_disposed) break;
                 while (_videoQueue.TryPeek(out var head) && head.Timestamp <= stopwatch.Elapsed)
                 {
                     _videoSocket.Send(MapVideo(_videoQueue.Dequeue()));
@@ -85,19 +80,31 @@ public class Player : IAsyncDisposable
         stopwatch.Stop();
     }
 
-
     public async ValueTask DisposeAsync()
     {
         try
         {
             await _semaphore.WaitAsync();
-            _disposed = 1;
+            _disposed = true;
         }
         finally
         {
             _semaphore.Release();
         }
         _semaphore.Dispose();
+    }
+
+    private async Task Enqueue(Queue<AbstractFrame> queue, AbstractFrame frame)
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+            queue.Enqueue(frame);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
