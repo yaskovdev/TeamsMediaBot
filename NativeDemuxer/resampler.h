@@ -19,12 +19,9 @@ class resampler
     int max_dst_nb_samples_;
     AVChannelLayout src_ch_layout_;
     AVChannelLayout dst_ch_layout_;
-    bool frame_consumed_;
 
 public:
     resampler();
 
-    void write_frame(const uint8_t* frame, int length);
-
-    uint8_t* read_frame(frame_metadata* metadata);
+    uint8_t* resample_frame(const uint8_t* src_frame, int src_length, frame_metadata* dst_metadata);
 };

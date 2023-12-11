@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 
 public class Resampler : IResampler
 {
+    private static readonly Frame EmptyFrame = new(FrameType.Audio, IntPtr.Zero, 0, TimeSpan.Zero);
+
     private const int OutputPacketLengthMs = 20;
     private const int OutputPacketSize = OutputPacketLengthMs * 32;
     private readonly IntPtr _resampler = NativeResamplerApi.CreateResampler();
@@ -11,20 +13,15 @@ public class Resampler : IResampler
     private int _outputCount;
     private int _disposed;
 
-    public void WriteFrame(IntPtr bytes, int length) => NativeResamplerApi.WriteFrame(_resampler, bytes, length);
+    public void WriteFrame(IntPtr bytes, int length)
+    {
+        var metadata = new FrameMetadata();
+        var resampledFrame = NativeResamplerApi.ResampleFrame(_resampler, bytes, length, ref metadata);
+        _outputBuffer.Write(resampledFrame, (int)metadata.Size);
+    }
 
     public AbstractFrame ReadFrame()
     {
-        while (true)
-        {
-            var metadata = new FrameMetadata();
-            var data = NativeResamplerApi.ReadFrame(_resampler, ref metadata);
-            if (data == IntPtr.Zero)
-            {
-                break;
-            }
-            _outputBuffer.Write(data, (int)metadata.Size);
-        }
         if (_outputBuffer.Size >= OutputPacketSize)
         {
             var data = Marshal.AllocHGlobal(OutputPacketSize);
@@ -33,7 +30,7 @@ public class Resampler : IResampler
             _outputCount++;
             return frame;
         }
-        return new Frame(FrameType.Audio, IntPtr.Zero, 0, TimeSpan.Zero);
+        return EmptyFrame;
     }
 
     public void Dispose()
