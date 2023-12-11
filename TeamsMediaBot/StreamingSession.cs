@@ -33,7 +33,7 @@ public class StreamingSession : IAsyncDisposable
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         _player = new Player(_audioSocket, _videoSocket); // TODO: read FPS from config, same in BrowserAudioVideoCapturingService.Constants
-        _ = StartStreaming(); // TODO: log exception if any
+        StartStreaming().OnException(e => Console.WriteLine($"Cannot start streaming: {e}"));
     }
 
     private async Task StartStreaming()

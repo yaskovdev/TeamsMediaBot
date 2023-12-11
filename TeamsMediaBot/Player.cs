@@ -28,18 +28,11 @@ public class Player : IAsyncDisposable
             Console.WriteLine($"Audio queue size is {_audioQueue.Count}, video queue size is {_videoQueue.Count}");
         }
 
-        if (frame.Type == FrameType.Audio)
-        {
-            await Enqueue(_audioQueue, frame);
-        }
-        else if (frame.Type == FrameType.Video)
-        {
-            await Enqueue(_videoQueue, frame);
-        }
+        await EnqueueInternal(frame);
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            _ = StartPlaying(); // TODO: log possible exceptions
+            StartPlaying().OnException(e => Console.WriteLine($"Cannot start playing: {e}"));
         }
         Interlocked.Increment(ref _count);
     }
@@ -94,12 +87,18 @@ public class Player : IAsyncDisposable
         }
     }
 
-    private async Task Enqueue(Queue<AbstractFrame> queue, AbstractFrame frame)
+    private async Task EnqueueInternal(AbstractFrame frame)
     {
+        var queue = frame.Type switch
+        {
+            FrameType.Audio => _audioQueue,
+            FrameType.Video => _videoQueue,
+            _ => null
+        };
         try
         {
             await _semaphore.WaitAsync();
-            queue.Enqueue(frame);
+            queue?.Enqueue(frame);
         }
         finally
         {
