@@ -4,27 +4,26 @@ using System.Collections.Concurrent;
 using Demuxer;
 using Microsoft.Skype.Bots.Media;
 
-public class Player : IAsyncDisposable
+public class Player : IDisposable
 {
-    private const int MinLengthOfBuffersInSeconds = 2;
-    private readonly Timer _timer;
-    private readonly int _audioFps;
-    private readonly int _videoFps;
-    private readonly ConcurrentQueue<AbstractFrame> _audioQueue = new();
+    private const int AudioFps = 50;
+    private readonly PeriodicTimer _timer;
+    private readonly ConcurrentQueue<AbstractFrame> _audioQueue = new(); // TODO: should the queues be concurrent or better to rely on the synchronization?
     private readonly ConcurrentQueue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
-    private int _count;
-    private int _executionsToSkip;
+    private int _playing;
+    private int _tick;
 
-    public Player(IAudioSocket audioSocket, IVideoSocket videoSocket, int videoFps)
+    private static TimeSpan Interval => TimeSpan.FromSeconds(1) / AudioFps;
+
+    private TimeSpan Now => Interval * _tick;
+
+    public Player(IAudioSocket audioSocket, IVideoSocket videoSocket)
     {
         _audioSocket = audioSocket;
         _videoSocket = videoSocket;
-        _audioFps = 50;
-        _videoFps = videoFps;
-        _timer = new Timer(SendBuffers);
-        _timer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(1).Divide(_videoFps));
+        _timer = new PeriodicTimer(Interval);
     }
 
     public void Enqueue(AbstractFrame frame)
@@ -37,40 +36,32 @@ public class Player : IAsyncDisposable
         {
             _videoQueue.Enqueue(frame);
         }
+
+        if (Interlocked.Exchange(ref _playing, 1) == 0) // TODO: probably wait for a longer queue, not just for the very first enqueued frame.
+        {
+            _ = StartPlaying();
+        }
     }
 
-    // TODO: probably better if (_count % _audioFps == 0) EmitAudioFrame(); else if (_count % _videoFps == 0) EmitVideoFrame();
-    private void SendBuffers(object? state)
+    private async Task StartPlaying()
     {
-        if (_executionsToSkip > 0)
+        while (await _timer.WaitForNextTickAsync())
         {
-            _executionsToSkip--;
-        }
-        else if (_audioQueue.Count < MinLengthOfBuffersInSeconds * _audioFps || _videoQueue.Count < MinLengthOfBuffersInSeconds * _videoFps)
-        {
-            _executionsToSkip += _videoFps;
-        }
-        else
-        {
-            if (_videoQueue.TryDequeue(out var videoFrame))
+            while (_audioQueue.TryPeek(out var next) && next.Timestamp <= Now) // TODO: DRY
             {
-                _videoSocket.Send(MapVideo(videoFrame));
+                _audioQueue.TryDequeue(out _);
+                _audioSocket.Send(MapAudio(next)); // TODO: probably send only the last one to be able to keep up? And dispose of the others. Same for video.
             }
-            if (_count == 0)
+            while (_videoQueue.TryPeek(out var next) && next.Timestamp <= Now)
             {
-                for (var i = 0; i < 50; i++)
-                {
-                    if (_audioQueue.TryDequeue(out var audioFrame))
-                    {
-                        _audioSocket.Send(MapAudio(audioFrame));
-                    }
-                }
+                _videoQueue.TryDequeue(out _);
+                _videoSocket.Send(MapVideo(next));
             }
-            _count = (_count + 1) % _videoFps;
+            Interlocked.Increment(ref _tick);
         }
     }
 
-    public async ValueTask DisposeAsync() => await _timer.DisposeAsync();
+    public void Dispose() => _timer.Dispose(); // TODO: need to synchronize with StartPlaying() to guarantee that once Dispose() returns no frames will be sent to sockets
 
     private static AudioBuffer MapAudio(AbstractFrame frame) => new(frame, AudioFormat.Pcm16K);
 

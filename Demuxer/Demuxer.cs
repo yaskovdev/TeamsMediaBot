@@ -9,6 +9,8 @@ public class Demuxer : IDemuxer
 
     private readonly IntPtr _demuxer;
 
+    private int _disposed;
+
     public Demuxer(IBlockingBuffer buffer)
     {
         _callback = buffer.Read;
@@ -24,6 +26,9 @@ public class Demuxer : IDemuxer
 
     public void Dispose()
     {
-        NativeDemuxerApi.DeleteDemuxer(_demuxer);
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            NativeDemuxerApi.DeleteDemuxer(_demuxer);
+        }
     }
 }

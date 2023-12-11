@@ -9,11 +9,9 @@ public class Resampler : IResampler
     private readonly IntPtr _resampler = NativeResamplerApi.CreateResampler();
     private readonly CircularBuffer _outputBuffer = new(512 * 1024);
     private int _outputCount;
+    private int _disposed;
 
-    public void WriteFrame(IntPtr bytes, int length)
-    {
-        NativeResamplerApi.WriteFrame(_resampler, bytes, length);
-    }
+    public void WriteFrame(IntPtr bytes, int length) => NativeResamplerApi.WriteFrame(_resampler, bytes, length);
 
     public AbstractFrame ReadFrame()
     {
@@ -40,6 +38,9 @@ public class Resampler : IResampler
 
     public void Dispose()
     {
-        NativeResamplerApi.DeleteResampler(_resampler);
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        {
+            NativeResamplerApi.DeleteResampler(_resampler);
+        }
     }
 }

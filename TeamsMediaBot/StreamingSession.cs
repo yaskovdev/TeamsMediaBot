@@ -20,8 +20,6 @@ public class StreamingSession : IAsyncDisposable
     private bool _disposed;
 
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    // private bool _disposed;
-    // private AudioVideoFramePlayer? _player;
 
     public StreamingSession(ILocalMediaSession mediaSession)
     {
@@ -34,7 +32,7 @@ public class StreamingSession : IAsyncDisposable
         _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
-        _player = new Player(_audioSocket, _videoSocket, 15); // TODO: read FPS from config, same in BrowserAudioVideoCapturingService.Constants
+        _player = new Player(_audioSocket, _videoSocket); // TODO: read FPS from config, same in BrowserAudioVideoCapturingService.Constants
         _ = StartStreaming(); // TODO: log exception if any
     }
 
@@ -86,7 +84,6 @@ public class StreamingSession : IAsyncDisposable
         try
         {
             await _semaphore.WaitAsync();
-            await _player.DisposeAsync();
             _buffer.Dispose();
             _resampler.Dispose();
             _demuxer.Dispose();
