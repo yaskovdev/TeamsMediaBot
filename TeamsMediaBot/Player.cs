@@ -1,15 +1,15 @@
 ﻿namespace TeamsMediaBot;
 
-using System.Collections.Concurrent;
 using Demuxer;
 using Microsoft.Skype.Bots.Media;
 
-public class Player : IDisposable
+public class Player : IAsyncDisposable
 {
     private const int AudioFps = 50;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly PeriodicTimer _timer;
-    private readonly ConcurrentQueue<AbstractFrame> _audioQueue = new(); // TODO: should the queues be concurrent or better to rely on the synchronization?
-    private readonly ConcurrentQueue<AbstractFrame> _videoQueue = new();
+    private readonly Queue<AbstractFrame> _audioQueue = new(); // TODO: should the queues be concurrent or better to rely on the synchronization?
+    private readonly Queue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
     private int _playing;
@@ -26,15 +26,23 @@ public class Player : IDisposable
         _timer = new PeriodicTimer(Interval);
     }
 
-    public void Enqueue(AbstractFrame frame)
+    public async Task Enqueue(AbstractFrame frame)
     {
-        if (frame.Type == FrameType.Audio)
+        try
         {
-            _audioQueue.Enqueue(frame);
+            await _semaphore.WaitAsync();
+            if (frame.Type == FrameType.Audio)
+            {
+                _audioQueue.Enqueue(frame);
+            }
+            else if (frame.Type == FrameType.Video)
+            {
+                _videoQueue.Enqueue(frame);
+            }
         }
-        else if (frame.Type == FrameType.Video)
+        finally
         {
-            _videoQueue.Enqueue(frame);
+            _semaphore.Release();
         }
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
@@ -46,25 +54,46 @@ public class Player : IDisposable
     private async Task StartPlaying()
     {
         await Task.Delay(TimeSpan.FromSeconds(4)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
-        while (await _timer.WaitForNextTickAsync())
+        while (await _timer.WaitForNextTickAsync()) // TODO: try using a normal while (_disposed == 0) cycle and current time.
         {
-            var audioFrame = Forward(_audioQueue, Now);
-            if (audioFrame is not null)
+            try
             {
-                _audioSocket.Send(MapAudio(audioFrame));
+                await _semaphore.WaitAsync();
+                var audioFrame = Forward(_audioQueue, Now);
+                if (audioFrame is not null)
+                {
+                    _audioSocket.Send(MapAudio(audioFrame));
+                }
+                var videoFrame = Forward(_videoQueue, Now);
+                if (videoFrame is not null)
+                {
+                    _videoSocket.Send(MapVideo(videoFrame));
+                }
+                _tick++;
             }
-            var videoFrame = Forward(_videoQueue, Now);
-            if (videoFrame is not null)
+            finally
             {
-                _videoSocket.Send(MapVideo(videoFrame));
+                _semaphore.Release();
             }
-            Interlocked.Increment(ref _tick);
         }
     }
 
-    public void Dispose() => _timer.Dispose(); // TODO: need to synchronize with StartPlaying() to guarantee that once Dispose() returns no frames will be sent to sockets
 
-    private static AbstractFrame? Forward(ConcurrentQueue<AbstractFrame> queue, TimeSpan time)
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+            _timer.Dispose();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+        _semaphore.Dispose();
+    }
+
+    private static AbstractFrame? Forward(Queue<AbstractFrame> queue, TimeSpan time)
     {
         AbstractFrame? frame = null;
         while (queue.TryPeek(out var head) && head.Timestamp <= time)

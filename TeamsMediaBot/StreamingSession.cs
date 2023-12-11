@@ -51,7 +51,7 @@ public class StreamingSession : IAsyncDisposable
                     var frame = _demuxer.ReadFrame();
                     if (frame.Type == FrameType.Video)
                     {
-                        _player.Enqueue(frame);
+                        await _player.Enqueue(frame);
                     }
                     else if (frame.Type == FrameType.Audio)
                     {
@@ -63,7 +63,7 @@ public class StreamingSession : IAsyncDisposable
                             {
                                 break;
                             }
-                            _player.Enqueue(resampledAudio);
+                            await _player.Enqueue(resampledAudio);
                         }
                     }
                 }
@@ -95,8 +95,8 @@ public class StreamingSession : IAsyncDisposable
         {
             _disposed = true;
             _semaphore.Release();
-            _semaphore.Dispose();
         }
+        _semaphore.Dispose();
     }
 
     private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
