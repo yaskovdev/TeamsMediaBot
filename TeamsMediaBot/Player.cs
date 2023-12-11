@@ -1,29 +1,23 @@
 ﻿namespace TeamsMediaBot;
 
+using System.Diagnostics;
 using Demuxer;
 using Microsoft.Skype.Bots.Media;
 
 public class Player : IAsyncDisposable
 {
-    private const int AudioFps = 50;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private readonly PeriodicTimer _timer;
-    private readonly Queue<AbstractFrame> _audioQueue = new(); // TODO: should the queues be concurrent or better to rely on the synchronization?
+    private readonly Queue<AbstractFrame> _audioQueue = new();
     private readonly Queue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
     private int _playing;
-    private int _tick;
-
-    private static TimeSpan Interval => TimeSpan.FromSeconds(1) / AudioFps;
-
-    private TimeSpan Now => Interval * _tick;
+    private int _disposed;
 
     public Player(IAudioSocket audioSocket, IVideoSocket videoSocket)
     {
         _audioSocket = audioSocket;
         _videoSocket = videoSocket;
-        _timer = new PeriodicTimer(Interval);
     }
 
     public async Task Enqueue(AbstractFrame frame)
@@ -54,28 +48,29 @@ public class Player : IAsyncDisposable
     private async Task StartPlaying()
     {
         await Task.Delay(TimeSpan.FromSeconds(4)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
-        while (await _timer.WaitForNextTickAsync()) // TODO: try using a normal while (_disposed == 0) cycle and current time.
+        var stopwatch = Stopwatch.StartNew();
+        while (_disposed == 0)
         {
             try
             {
                 await _semaphore.WaitAsync();
-                var audioFrame = Forward(_audioQueue, Now);
+                var audioFrame = Forward(_audioQueue, stopwatch.Elapsed);
                 if (audioFrame is not null)
                 {
                     _audioSocket.Send(MapAudio(audioFrame));
                 }
-                var videoFrame = Forward(_videoQueue, Now);
+                var videoFrame = Forward(_videoQueue, stopwatch.Elapsed);
                 if (videoFrame is not null)
                 {
                     _videoSocket.Send(MapVideo(videoFrame));
                 }
-                _tick++;
             }
             finally
             {
                 _semaphore.Release();
             }
         }
+        stopwatch.Stop();
     }
 
 
@@ -84,7 +79,7 @@ public class Player : IAsyncDisposable
         try
         {
             await _semaphore.WaitAsync();
-            _timer.Dispose();
+            _disposed = 1;
         }
         finally
         {
@@ -100,7 +95,7 @@ public class Player : IAsyncDisposable
         {
             if (frame is not null)
             {
-                Console.WriteLine($"Skipping a frame of type {frame.Type}");
+                Console.WriteLine($"Skipping a frame of type {frame.Type}"); // TODO: now when the cycle runs as fast as possible there is probably no need to skip anything, since it will likely keep up
                 frame.Dispose();
             }
             queue.TryDequeue(out frame);
