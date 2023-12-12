@@ -9,6 +9,7 @@ using PuppeteerSharp;
 public class StreamingSession : IAsyncDisposable
 {
     private readonly Task<IBrowser> _launchBrowserTask;
+    private readonly Task _streamingTask;
     private readonly IBlockingBuffer _buffer;
     private readonly IDemuxer _demuxer;
     private readonly IResampler _resampler;
@@ -33,7 +34,7 @@ public class StreamingSession : IAsyncDisposable
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         _player = new Player(_audioSocket, _videoSocket, videoFormat);
-        StartStreaming().OnException(e => Console.WriteLine($"An exception happened during streaming: {e}"));
+        _streamingTask = StartStreaming();
     }
 
     private async Task StartStreaming()
@@ -46,7 +47,11 @@ public class StreamingSession : IAsyncDisposable
             try
             {
                 await _semaphore.WaitAsync();
-                if (!_disposed)
+                if (_disposed)
+                {
+                    return;
+                }
+                else
                 {
                     var frame = _demuxer.ReadFrame();
                     if (frame.Type == FrameType.Video)
@@ -67,10 +72,6 @@ public class StreamingSession : IAsyncDisposable
                         }
                     }
                 }
-                else
-                {
-                    return;
-                }
             }
             finally
             {
@@ -90,13 +91,15 @@ public class StreamingSession : IAsyncDisposable
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();
             await browser.DisposeAsync();
+            _disposed = true;
         }
         finally
         {
-            _disposed = true;
             _semaphore.Release();
         }
-        _semaphore.Dispose(); // TODO: can be called when a thread is having the semaphore. Then the thread will throw an exception on semaphore release.
+        Console.WriteLine("Waiting for streaming to finish before disposing of the semaphore");
+        await _streamingTask;
+        _semaphore.Dispose();
     }
 
     private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
