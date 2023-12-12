@@ -4,6 +4,9 @@
 
 ### Configure Ngrok Tunnels
 
+You can use the default Ngrok config file for that, it is normally located
+in `$env:USERPROFILE\AppData\Local\ngrok\ngrok.yml`.
+
 ```yaml
 version: "2"
 region: us
@@ -15,6 +18,10 @@ tunnels:
     addr: 8445
     proto: tcp
 ```
+
+### Start Ngrok
+
+You can run `ngrok start --all` for that.
 
 If you get an error "TCP tunnels are only available to registered users", follow instructions from Ngrok to acquire auth
 token.
