@@ -14,7 +14,7 @@ using Microsoft.Skype.Bots.Media;
 
 public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 {
-    private static readonly VideoFormat SupportedSendVideoFormat = VideoFormat.NV12_1920x1080_15Fps;
+    private static readonly VideoFormat SupportedSendVideoFormat = VideoFormat.NV12_1280x720_30Fps;
 
     private readonly IJoinUrlParser _joinUrlParser;
     private readonly ICommunicationsClient _communicationsClient;
