@@ -10,8 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NativeDemuxer\NativeDemuxer.vcxproj" />
-        <Content Include="..\$(Platform)\$(Configuration)\NativeDemuxer.dll">
-            <Link>NativeDemuxer.dll</Link>
+        <Content Include="..\$(Platform)\$(Configuration)\*.dll">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

@@ -21,7 +21,7 @@ token.
 
 ### Configure The App
 
-Create `appsettings.Local.json` with the next params:
+Create `appsettings.Local.json` next to `appsettings.json` with the next params:
 
 ```json
 {
@@ -48,7 +48,7 @@ configured in DNS).
 
 ### Configure Media Platform
 
-Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Release\net6.0` (or `Debug`) and
+Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Debug\net6.0` (or `Release`) and
 run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 
 ## Running With Docker In Linux Container
