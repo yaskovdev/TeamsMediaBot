@@ -10,5 +10,10 @@ public class StartRecordingSettings
 
     public string MimeType => $"video/webm;codecs=\"{Constants.VideoEncoder},{Constants.AudioEncoder}\"";
 
-    public VideoConstraints VideoConstraints => new();
+    public VideoConstraints VideoConstraints { get; }
+
+    public StartRecordingSettings(int width, int height, int frameRate)
+    {
+        VideoConstraints = new VideoConstraints(width, height, frameRate);
+    }
 }

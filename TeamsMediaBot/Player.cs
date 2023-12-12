@@ -11,14 +11,16 @@ public class Player : IAsyncDisposable
     private readonly Queue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
+    private readonly VideoFormat _videoFormat;
     private int _playing;
     private bool _disposed;
     private int _count;
 
-    public Player(IAudioSocket audioSocket, IVideoSocket videoSocket)
+    public Player(IAudioSocket audioSocket, IVideoSocket videoSocket, VideoFormat videoFormat)
     {
         _audioSocket = audioSocket;
         _videoSocket = videoSocket;
+        _videoFormat = videoFormat;
     }
 
     public async Task Enqueue(AbstractFrame frame)
@@ -32,9 +34,23 @@ public class Player : IAsyncDisposable
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            StartPlaying().OnException(e => Console.WriteLine($"Cannot start playing: {e}"));
+            StartPlaying().OnException(e => Console.WriteLine($"An exception happened during playing: {e}"));
         }
         Interlocked.Increment(ref _count);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+            _disposed = true;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+        _semaphore.Dispose();
     }
 
     private async Task StartPlaying()
@@ -54,20 +70,6 @@ public class Player : IAsyncDisposable
             }
         }
         stopwatch.Stop();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            await _semaphore.WaitAsync();
-            _disposed = true;
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-        _semaphore.Dispose();
     }
 
     private async Task Dequeue(Queue<AbstractFrame> queue, Action<AbstractFrame> action, TimeSpan time)
@@ -108,5 +110,5 @@ public class Player : IAsyncDisposable
 
     private void SendAudio(AbstractFrame frame) => _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
 
-    private void SendVideo(AbstractFrame frame) => _videoSocket.Send(new VideoBuffer(frame, VideoFormat.NV12_1920x1080_15Fps));
+    private void SendVideo(AbstractFrame frame) => _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
 }

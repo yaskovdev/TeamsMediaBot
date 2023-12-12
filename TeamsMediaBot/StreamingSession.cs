@@ -21,19 +21,19 @@ public class StreamingSession : IAsyncDisposable
 
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public StreamingSession(ILocalMediaSession mediaSession)
+    public StreamingSession(ILocalMediaSession mediaSession, VideoFormat videoFormat)
     {
         _buffer = new BlockingCircularBuffer(512 * 1024);
         var browserLauncher = new BrowserLauncher();
-        _launchBrowserTask = browserLauncher.LaunchInstance(_buffer.Write);
+        _launchBrowserTask = browserLauncher.LaunchInstance(videoFormat.Width, videoFormat.Height, (int)videoFormat.FrameRate, _buffer.Write);
         _demuxer = new Demuxer(_buffer);
         _resampler = new Resampler();
         _audioSocket = mediaSession.AudioSocket;
         _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
         _videoSocket = mediaSession.VideoSockets[0];
         _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
-        _player = new Player(_audioSocket, _videoSocket); // TODO: read FPS from config, same in BrowserAudioVideoCapturingService.Constants
-        StartStreaming().OnException(e => Console.WriteLine($"Cannot start streaming: {e}"));
+        _player = new Player(_audioSocket, _videoSocket, videoFormat);
+        StartStreaming().OnException(e => Console.WriteLine($"An exception happened during streaming: {e}"));
     }
 
     private async Task StartStreaming()
@@ -96,7 +96,7 @@ public class StreamingSession : IAsyncDisposable
             _disposed = true;
             _semaphore.Release();
         }
-        _semaphore.Dispose();
+        _semaphore.Dispose(); // TODO: can be called when a thread is having the semaphore. Then the thread will throw an exception on semaphore release.
     }
 
     private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)

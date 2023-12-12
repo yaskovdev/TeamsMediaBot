@@ -43,7 +43,7 @@ Params to update after every Ngrok restart:
 1. `NotificationUrl` (only host, e.g., `e244-85-253-32-115.ngrok-free.app`),
 2. `PublicMediaUrl` (only port, e.g., `16847`).
 
-`localhost:8445` should receive traffic from `2.tcp.ngrok.io` (depends on how `sergeiiaskov.dev.mcr.skype.net` is
+`localhost:8445` should receive traffic from `2.tcp.ngrok.io` (depends on how `bot.yaskovdev.com` is
 configured in DNS).
 
 ### Configure Media Platform

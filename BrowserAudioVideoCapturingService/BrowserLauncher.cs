@@ -9,7 +9,7 @@ public class BrowserLauncher
 
     private const string ChromeExecutablePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 
-    public async Task<IBrowser> LaunchInstance(Action<string> onMediaChunkReceived)
+    public async Task<IBrowser> LaunchInstance(int width, int height, int frameRate, Action<string> onMediaChunkReceived)
     {
         Console.WriteLine("Starting...");
 
@@ -18,7 +18,7 @@ public class BrowserLauncher
         var pages = await browser.PagesAsync();
         var page = pages[0];
         await page.GoToAsync($"https://www.youtube.com/embed/{YouTubeVideoId}?autoplay=1&loop=1&playlist={YouTubeVideoId}");
-        await page.SetViewportAsync(new ViewPortOptions { Width = Constants.Width, Height = Constants.Height });
+        await page.SetViewportAsync(new ViewPortOptions { Width = width, Height = height });
 
         var extensionPage = await browser.ExtensionPage();
         await extensionPage.ExposeFunctionAsync<string, Task>("sendData", async data =>
@@ -27,7 +27,7 @@ public class BrowserLauncher
             await Task.CompletedTask;
         });
 
-        await browser.StartCapturing();
+        await browser.StartCapturing(new StartRecordingSettings(width, height, frameRate));
 
         return browser;
     }

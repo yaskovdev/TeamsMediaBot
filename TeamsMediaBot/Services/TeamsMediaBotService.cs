@@ -14,7 +14,7 @@ using Microsoft.Skype.Bots.Media;
 
 public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 {
-    private static readonly IList<VideoFormat> SupportedSendVideoFormats = ImmutableList.Create(VideoFormat.NV12_1920x1080_15Fps);
+    private static readonly VideoFormat SupportedSendVideoFormat = VideoFormat.NV12_1920x1080_15Fps;
 
     private readonly IJoinUrlParser _joinUrlParser;
     private readonly ICommunicationsClient _communicationsClient;
@@ -76,12 +76,12 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         {
             StreamDirections = StreamDirection.Sendonly,
             ReceiveColorFormat = VideoColorFormat.NV12,
-            SupportedSendVideoFormats = SupportedSendVideoFormats
+            SupportedSendVideoFormats = ImmutableList.Create(SupportedSendVideoFormat)
         };
         var mediaSession = _communicationsClient.CreateMediaSession(audioSocketSettings, videoSocketSettings);
         var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession);
         var call = await _communicationsClient.Calls().AddAsync(joinParams, Guid.NewGuid());
-        _callIdToStreamingSession[call.Id] = new StreamingSession(mediaSession);
+        _callIdToStreamingSession[call.Id] = new StreamingSession(mediaSession, SupportedSendVideoFormat);
         return call;
     }
 

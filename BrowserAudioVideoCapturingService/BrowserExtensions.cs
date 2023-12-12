@@ -4,10 +4,10 @@ using PuppeteerSharp;
 
 public static class BrowserExtensions
 {
-    public static async Task StartCapturing(this IBrowser browser)
+    public static async Task StartCapturing(this IBrowser browser, StartRecordingSettings settings)
     {
         var extensionPage = await browser.ExtensionPage();
-        await extensionPage.EvaluateFunctionAsync("START_RECORDING", new StartRecordingSettings());
+        await extensionPage.EvaluateFunctionAsync("START_RECORDING", settings);
     }
 
     public static async Task StopCapturing(this IBrowser browser)
