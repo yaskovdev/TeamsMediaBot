@@ -26,14 +26,14 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         IRequestAuthenticationProvider requestAuthenticationProvider, IMediaPlatformLogger mediaPlatformLogger, IGraphLogger graphLogger)
     {
         logger.LogInformation("Creating a new instance");
-        var publicMediaUrl = new Uri(config["PublicMediaUrl"]);
+        var publicMediaUrl = new Uri(config["PublicMediaUrl"] ?? "");
         var mediaPlatformSettings = new MediaPlatformSettings
         {
             MediaPlatformInstanceSettings = new MediaPlatformInstanceSettings
             {
                 ServiceFqdn = publicMediaUrl.Host,
                 CertificateThumbprint = config["CertificateThumbprint"],
-                InstanceInternalPort = int.Parse(config["MediaProcessorEndpointInternalPort"], CultureInfo.InvariantCulture),
+                InstanceInternalPort = int.Parse(config["MediaProcessorEndpointInternalPort"] ?? "", CultureInfo.InvariantCulture),
                 InstancePublicIPAddress = Dns.GetHostEntry(publicMediaUrl.Host).AddressList[0],
                 InstancePublicPort = publicMediaUrl.Port
             },
@@ -42,8 +42,8 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         };
         _joinUrlParser = joinUrlParser;
         _communicationsClient = new CommunicationsClientBuilder(config["AppName"], config["AppId"], graphLogger)
-            .SetNotificationUrl(new Uri(config["NotificationUrl"]))
-            .SetServiceBaseUrl(new Uri(config["ServiceBaseUrl"]))
+            .SetNotificationUrl(new Uri(config["NotificationUrl"] ?? ""))
+            .SetServiceBaseUrl(new Uri(config["ServiceBaseUrl"] ?? ""))
             .SetAuthenticationProvider(requestAuthenticationProvider)
             .SetMediaPlatformSettings(mediaPlatformSettings)
             .Build();

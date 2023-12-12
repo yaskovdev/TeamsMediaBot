@@ -55,14 +55,14 @@ public class Player : IAsyncDisposable
 
     private async Task StartPlaying()
     {
-        await Task.Delay(TimeSpan.FromSeconds(4)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
+        await Task.Delay(TimeSpan.FromSeconds(1)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
         var stopwatch = Stopwatch.StartNew();
         while (true)
         {
             try
             {
-                await Dequeue(_audioQueue, SendAudio, stopwatch.Elapsed);
-                await Dequeue(_videoQueue, SendVideo, stopwatch.Elapsed);
+                await Dequeue(_audioQueue, stopwatch.Elapsed);
+                await Dequeue(_videoQueue, stopwatch.Elapsed);
             }
             catch (ObjectDisposedException)
             {
@@ -72,7 +72,7 @@ public class Player : IAsyncDisposable
         stopwatch.Stop();
     }
 
-    private async Task Dequeue(Queue<AbstractFrame> queue, Action<AbstractFrame> action, TimeSpan time)
+    private async Task Dequeue(Queue<AbstractFrame> queue, TimeSpan time)
     {
         try
         {
@@ -80,7 +80,7 @@ public class Player : IAsyncDisposable
             if (_disposed) throw new ObjectDisposedException(nameof(Player));
             while (queue.TryPeek(out var head) && head.Timestamp <= time)
             {
-                action(queue.Dequeue());
+                Send(queue.Dequeue());
             }
         }
         finally
@@ -108,7 +108,9 @@ public class Player : IAsyncDisposable
         }
     }
 
-    private void SendAudio(AbstractFrame frame) => _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
-
-    private void SendVideo(AbstractFrame frame) => _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
+    private void Send(AbstractFrame frame)
+    {
+        if (frame.Type == FrameType.Audio) _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
+        else if (frame.Type == FrameType.Video) _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
+    }
 }

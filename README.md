@@ -48,7 +48,7 @@ configured in DNS).
 
 ### Configure Media Platform
 
-Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Debug\net6.0` (or `Release`) and
+Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Debug\net7.0` (or `Release`) and
 run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 
 ## Running With Docker In Linux Container

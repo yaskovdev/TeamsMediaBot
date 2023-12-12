@@ -19,10 +19,10 @@ public class AuthenticationProvider : IRequestAuthenticationProvider
 
     public AuthenticationProvider(IConfiguration config)
     {
-        _tenantId = config["TenantId"];
-        _appId = config["AppId"];
-        _appSecret = config["AppSecret"];
-        _appResource = config["AuthResource"];
+        _tenantId = config["TenantId"] ?? "";
+        _appId = config["AppId"] ?? "";
+        _appSecret = config["AppSecret"] ?? "";
+        _appResource = config["AuthResource"] ?? "";
     }
 
     public async Task AuthenticateOutboundRequestAsync(HttpRequestMessage request, string tenant)
