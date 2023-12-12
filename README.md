@@ -53,6 +53,12 @@ Params to update after every Ngrok restart:
 `localhost:8445` should receive traffic from `2.tcp.ngrok.io` (depends on how `bot.yaskovdev.com` is
 configured in DNS).
 
+### Install Certificate
+
+`CertificateThumbprint` should be a thumbprint of a certificate for the `PublicMediaUrl` domain (e.g., `*.yaskovdev.com`),
+so that Media Platform could authenticate with the Microsoft Skype/Teams calling services (using mTLS). Should not be a
+self-signed certificate.
+
 ### Configure Media Platform
 
 Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Debug\net7.0` (or `Release`) and
