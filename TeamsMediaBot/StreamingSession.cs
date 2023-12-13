@@ -18,9 +18,7 @@ public class StreamingSession : IAsyncDisposable
     private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly Player _player;
-    private bool _disposed;
-
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private int _disposed;
 
     public StreamingSession(ILocalMediaSession mediaSession, VideoFormat videoFormat)
     {
@@ -44,62 +42,44 @@ public class StreamingSession : IAsyncDisposable
         Console.WriteLine("Sockets are active");
         while (true)
         {
-            try
+            if (_disposed == 1)
             {
-                await _semaphore.WaitAsync();
-                if (_disposed)
-                {
-                    return;
-                }
-                else
-                {
-                    var frame = _demuxer.ReadFrame();
-                    if (frame.Type == FrameType.Video)
-                    {
-                        await _player.Enqueue(frame);
-                    }
-                    else if (frame.Type == FrameType.Audio)
-                    {
-                        _resampler.WriteFrame(frame.Data, (int)frame.Size);
-                        while (true)
-                        {
-                            var resampledAudio = _resampler.ReadFrame();
-                            if (resampledAudio.Data == IntPtr.Zero)
-                            {
-                                break;
-                            }
-                            await _player.Enqueue(resampledAudio);
-                        }
-                    }
-                }
+                return;
             }
-            finally
+            var frame = _demuxer.ReadFrame();
+            if (frame.Type == FrameType.Video)
             {
-                _semaphore.Release();
+                await _player.Enqueue(frame);
+            }
+            else if (frame.Type == FrameType.Audio)
+            {
+                _resampler.WriteFrame(frame.Data, (int)frame.Size);
+                while (true)
+                {
+                    var resampledAudio = _resampler.ReadFrame();
+                    if (resampledAudio.Data == IntPtr.Zero)
+                    {
+                        break;
+                    }
+                    await _player.Enqueue(resampledAudio);
+                }
             }
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        try
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            await _semaphore.WaitAsync();
-            _buffer.Dispose();
-            _resampler.Dispose();
-            _demuxer.Dispose();
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();
             await browser.DisposeAsync();
-            _disposed = true;
+            Console.WriteLine("Waiting for streaming to finish before disposing of the semaphore");
+            await _streamingTask;
+            _buffer.Dispose();
+            _resampler.Dispose();
+            _demuxer.Dispose();
         }
-        finally
-        {
-            _semaphore.Release();
-        }
-        Console.WriteLine("Waiting for streaming to finish before disposing of the semaphore");
-        await _streamingTask;
-        _semaphore.Dispose();
     }
 
     private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
