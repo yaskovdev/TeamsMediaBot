@@ -1,20 +1,21 @@
 ﻿namespace TeamsMediaBot;
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Demuxer;
 using Microsoft.Skype.Bots.Media;
 
 public class Player : IAsyncDisposable
 {
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private readonly Queue<AbstractFrame> _audioQueue = new();
-    private readonly Queue<AbstractFrame> _videoQueue = new();
+    private readonly ConcurrentQueue<AbstractFrame> _audioQueue = new();
+    private readonly ConcurrentQueue<AbstractFrame> _videoQueue = new();
     private readonly IAudioSocket _audioSocket;
     private readonly IVideoSocket _videoSocket;
     private readonly VideoFormat _videoFormat;
     private int _playing;
-    private bool _disposed;
+    private int _disposed;
     private int _count;
+    private volatile Task? _playerTask;
 
     public Player(IAudioSocket audioSocket, IVideoSocket videoSocket, VideoFormat videoFormat)
     {
@@ -23,34 +24,35 @@ public class Player : IAsyncDisposable
         _videoFormat = videoFormat;
     }
 
-    public async Task Enqueue(AbstractFrame frame)
+    public void Enqueue(AbstractFrame frame)
     {
+        if (_disposed == 1)
+        {
+            return;
+        }
+
         if (_count % 1000 == 0)
         {
             Console.WriteLine($"Audio queue size is {_audioQueue.Count}, video queue size is {_videoQueue.Count}");
         }
 
-        await EnqueueInternal(frame);
+        EnqueueInternal(frame);
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            StartPlaying().OnException(e => Console.WriteLine($"An exception happened during playing: {e}"));
+            _playerTask = StartPlaying();
         }
         Interlocked.Increment(ref _count);
     }
 
     public async ValueTask DisposeAsync()
     {
-        try
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            await _semaphore.WaitAsync();
-            _disposed = true;
+            Console.WriteLine("Waiting for the player to stop");
+            if (_playerTask is not null) await _playerTask;
+            Console.WriteLine("Player stopped"); // TODO: also dequeue all the items and dispose of them
         }
-        finally
-        {
-            _semaphore.Release();
-        }
-        _semaphore.Dispose();
     }
 
     private async Task StartPlaying()
@@ -61,8 +63,8 @@ public class Player : IAsyncDisposable
         {
             try
             {
-                await Dequeue(_audioQueue, stopwatch.Elapsed);
-                await Dequeue(_videoQueue, stopwatch.Elapsed);
+                Dequeue(_audioQueue, stopwatch.Elapsed);
+                Dequeue(_videoQueue, stopwatch.Elapsed);
             }
             catch (ObjectDisposedException)
             {
@@ -72,24 +74,19 @@ public class Player : IAsyncDisposable
         stopwatch.Stop();
     }
 
-    private async Task Dequeue(Queue<AbstractFrame> queue, TimeSpan time)
+    private void Dequeue(ConcurrentQueue<AbstractFrame> queue, TimeSpan time)
     {
-        try
+        if (_disposed == 1) throw new ObjectDisposedException(nameof(Player));
+        while (queue.TryPeek(out var head) && head.Timestamp <= time)
         {
-            await _semaphore.WaitAsync();
-            if (_disposed) throw new ObjectDisposedException(nameof(Player));
-            while (queue.TryPeek(out var head) && head.Timestamp <= time)
+            if (queue.TryDequeue(out var frame))
             {
-                Send(queue.Dequeue());
+                Send(frame);
             }
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
-    private async Task EnqueueInternal(AbstractFrame frame)
+    private void EnqueueInternal(AbstractFrame frame)
     {
         var queue = frame.Type switch
         {
@@ -97,15 +94,7 @@ public class Player : IAsyncDisposable
             FrameType.Video => _videoQueue,
             _ => null
         };
-        try
-        {
-            await _semaphore.WaitAsync();
-            queue?.Enqueue(frame);
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        queue?.Enqueue(frame);
     }
 
     private void Send(AbstractFrame frame)

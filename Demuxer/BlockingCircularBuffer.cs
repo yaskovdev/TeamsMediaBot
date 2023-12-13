@@ -18,7 +18,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
 
     public void Write(string packet)
     {
-        lock (_lock)
+        lock (_lock) // TODO: SemaphoreSlim is also an option (see how BlockingCollection is implemented)
         {
             if (packet.Length > _buffer.Length)
             {

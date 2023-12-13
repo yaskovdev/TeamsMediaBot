@@ -49,7 +49,7 @@ public class StreamingSession : IAsyncDisposable
             var frame = _demuxer.ReadFrame();
             if (frame.Type == FrameType.Video)
             {
-                await _player.Enqueue(frame);
+                _player.Enqueue(frame);
             }
             else if (frame.Type == FrameType.Audio)
             {
@@ -61,7 +61,7 @@ public class StreamingSession : IAsyncDisposable
                     {
                         break;
                     }
-                    await _player.Enqueue(resampledAudio);
+                    _player.Enqueue(resampledAudio);
                 }
             }
         }
@@ -79,6 +79,7 @@ public class StreamingSession : IAsyncDisposable
             _buffer.Dispose();
             _resampler.Dispose();
             _demuxer.Dispose();
+            await _player.DisposeAsync();
         }
     }
 
