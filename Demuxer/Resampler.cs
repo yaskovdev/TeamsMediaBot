@@ -16,7 +16,7 @@ public class Resampler : IResampler
     public void WriteFrame(IntPtr bytes, int length)
     {
         var metadata = new FrameMetadata();
-        var resampledFrame = NativeResamplerApi.ResampleFrame(_resampler, bytes, length, ref metadata);
+        var resampledFrame = NativeResamplerApi.ResampleFrame(_resampler, bytes, length, ref metadata); // TODO: the result is never deleted, should be deleted after writing to the buffer
         _outputBuffer.Write(resampledFrame, (int)metadata.Size);
     }
 

@@ -74,7 +74,7 @@ public class StreamingSession : IAsyncDisposable
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();
             await browser.DisposeAsync();
-            Console.WriteLine("Waiting for streaming to finish before disposing of the semaphore");
+            Console.WriteLine("Waiting for streaming to finish before disposing of the rest of the dependencies");
             await _streamingTask;
             _buffer.Dispose();
             _resampler.Dispose();
