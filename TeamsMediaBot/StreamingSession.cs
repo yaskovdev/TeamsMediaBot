@@ -13,8 +13,6 @@ public class StreamingSession : IAsyncDisposable
     private readonly IBlockingBuffer _buffer;
     private readonly IDemuxer _demuxer;
     private readonly IResampler _resampler;
-    private readonly IAudioSocket _audioSocket;
-    private readonly IVideoSocket _videoSocket;
     private readonly TaskCompletionSource<bool> _audioSocketActive = new();
     private readonly TaskCompletionSource<bool> _videoSocketActive = new();
     private readonly Player _player;
@@ -27,11 +25,11 @@ public class StreamingSession : IAsyncDisposable
         _launchBrowserTask = browserLauncher.LaunchInstance(videoFormat.Width, videoFormat.Height, (int)videoFormat.FrameRate, _buffer.Write);
         _demuxer = new Demuxer(_buffer);
         _resampler = new Resampler();
-        _audioSocket = mediaSession.AudioSocket;
-        _audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
-        _videoSocket = mediaSession.VideoSockets[0];
-        _videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
-        _player = new Player(_audioSocket, _videoSocket, videoFormat);
+        var audioSocket = mediaSession.AudioSocket;
+        audioSocket.AudioSendStatusChanged += OnAudioSendStatusChanged;
+        var videoSocket = mediaSession.VideoSockets[0];
+        videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
+        _player = new Player(audioSocket, videoSocket, videoFormat);
         _streamingTask = StartStreaming();
     }
 

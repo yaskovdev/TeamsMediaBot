@@ -89,3 +89,7 @@ curl -k -H 'Content-Type: application/json' https://localhost:7105/api/join-call
 ```shell
 curl -H 'Content-Type: application/json' http://localhost:5228/api/calls -d '{ "key": "value" }'
 ```
+
+## Swagger UI
+
+See [here](https://localhost:7105/swagger/index.html).
