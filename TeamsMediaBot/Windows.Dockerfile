@@ -1,16 +1,16 @@
 ﻿# escape=`
 
-# TODO: try switching back to mcr.microsoft.com/dotnet/aspnet:6.0 and install PowerShell
+# TODO: try switching back to mcr.microsoft.com/dotnet/aspnet:7.0 and install PowerShell
 FROM mcr.microsoft.com/windows:20H2 AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
 
-#RUN powershell Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Bypass
-#
-#RUN powershell -Command Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-#RUN choco install -y googlechrome --checksum64 F0A7E673D2DA6DA8005726C0A1E040BDE7201241A5F760E99182C12B025698B2
-#RUN choco install -y dotnet-6.0-runtime
+RUN powershell Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy Bypass
+
+RUN powershell -Command Invoke-Expression ((New-Object Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+RUN choco install -y googlechrome --version 119.0.6045.160 --checksum64 95D2DA28011924932B703AD561B644DBF21C12471005AD977E0E20560B242A38
+RUN choco install -y dotnet-7.0-runtime
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0-windowsservercore-ltsc2022 AS build
 
@@ -38,12 +38,9 @@ RUN `
 
 WORKDIR /src
 RUN curl -SL --output nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-#COPY ["TeamsMediaBot/TeamsMediaBot.csproj", "TeamsMediaBot/"]
-#RUN dotnet restore "TeamsMediaBot/TeamsMediaBot.csproj"
 COPY . .
 RUN .\nuget restore
-#WORKDIR "/src/TeamsMediaBot"
-RUN ("C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\bin\msbuild" /nr:false /bl /p:Platform=x64 /p:Configuration=Release)
+RUN ("C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\bin\msbuild" /p:Platform=x64 /p:Configuration=Release)
 
 FROM build AS publish
 RUN ("C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\bin\msbuild" /t:TeamsMediaBot:Publish /p:Configuration=Release /p:Platform=x64 /p:PublishDir="/app/publish" /p:UseAppHost=false)
