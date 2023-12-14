@@ -1,4 +1,5 @@
-﻿namespace TeamsMediaBot.Services;
+﻿#pragma warning disable 0618
+namespace TeamsMediaBot.Services;
 
 using System.Collections.Immutable;
 using System.Globalization;
