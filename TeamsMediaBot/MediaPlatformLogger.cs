@@ -12,14 +12,7 @@ public class MediaPlatformLogger : IMediaPlatformLogger
         _logger = logger;
     }
 
-    public void WriteLog(LogLevel level, string logStatement)
-    {
-        var logLevel = Map(level);
-        if (logLevel is AppLogLevel.Warning or AppLogLevel.Error)
-        {
-            _logger.Log(logLevel, "{Message}", logStatement);
-        }
-    }
+    public void WriteLog(LogLevel level, string logStatement) => _logger.Log(Map(level), "{Message}", logStatement);
 
     private static AppLogLevel Map(LogLevel source) =>
         source switch

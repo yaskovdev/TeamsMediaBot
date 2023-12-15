@@ -49,4 +49,4 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 # TODO: use an env variable to set the path got Chrome to "C:/Program Files/Google/Chrome/Application/chrome.exe"
-ENTRYPOINT ["dotnet", "TeamsMediaBot.dll"]
+ENTRYPOINT ["dotnet", "TeamsMediaBot.dll", "--urls", "http://+:80"]

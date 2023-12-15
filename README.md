@@ -47,8 +47,8 @@ Create `appsettings.Local.json` next to `appsettings.json` with the next params:
 
 Params to update after every Ngrok restart:
 
-1. `NotificationUrl` (only host, e.g., `e244-85-253-32-115.ngrok-free.app`),
-2. `PublicMediaUrl` (only port, e.g., `16847`).
+1. `NotificationUrl` (only host, e.g., `adca-85-253-32-115.ngrok-free.app`),
+2. `PublicMediaUrl` (only port, e.g., `11432`).
 
 `localhost:8445` should receive traffic from `2.tcp.ngrok.io` (depends on how `bot.yaskovdev.com` is
 configured in DNS).
@@ -68,19 +68,25 @@ run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 
 ```powershell
 docker build -f TeamsMediaBot/Dockerfile -t yaskovdev/teams-media-bot .
-docker run -p 4000:4000/udp -d yaskovdev/teams-media-bot
-ffplay -i srt://127.0.0.1:4000
+docker run -p 5228:80 -p 7105:443 --cpus=4 -d yaskovdev/teams-media-bot
 ```
 
 ## Running With Docker In Windows Container
 
 ```powershell
 docker build -f TeamsMediaBot/Windows.Dockerfile -t yaskovdev/teams-media-bot .
-docker run -p 4000:4000/udp -d yaskovdev/teams-media-bot
-ffplay -i srt://127.0.0.1:4000
+docker run -p 5228:80 -p 7105:443 --cpus=4 -d yaskovdev/teams-media-bot
 ```
 
 ## API
+
+```shell
+curl -v http://localhost:5228/api/health
+```
+
+```shell
+curl -k -v https://localhost:7105/api/health
+```
 
 ```shell
 curl -k -H 'Content-Type: application/json' https://localhost:7105/api/join-call-requests -d '{ "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDA1NDJjZDgtNDRhYy00MGY4LWE2YzQtMjI1YzFlNTAzYzMw%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%22b1b11b68-1839-4792-a462-1854254ddfe8%22%2c%22MessageId%22%3a%220%22%7d" }'

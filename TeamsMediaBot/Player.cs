@@ -40,7 +40,7 @@ public class Player : IAsyncDisposable
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            _playerTask = StartPlaying();
+            _playerTask = Task.Run(StartPlaying);;
         }
         Interlocked.Increment(ref _count);
     }
@@ -55,9 +55,9 @@ public class Player : IAsyncDisposable
         }
     }
 
-    private async Task StartPlaying()
+    private void StartPlaying()
     {
-        await Task.Delay(TimeSpan.FromSeconds(1)); // TODO: probably wait for a specific queue length, not just for the hardcoded number of seconds.
+        // TODO: probably wait for a specific queue length before starting playing
         var stopwatch = Stopwatch.StartNew();
         while (true)
         {

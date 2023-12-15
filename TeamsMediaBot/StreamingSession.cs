@@ -20,7 +20,7 @@ public class StreamingSession : IAsyncDisposable
 
     public StreamingSession(ILocalMediaSession mediaSession, VideoFormat videoFormat)
     {
-        _buffer = new BlockingCircularBuffer(512 * 1024);
+        _buffer = new BlockingCircularBuffer(512 * 1024 * 1024); // TODO: apparently, the browser still tries to write to the buffer even if no more data can fit. Should be fixed. Increasing the buffer size as a temporary solution
         var browserLauncher = new BrowserLauncher();
         _launchBrowserTask = browserLauncher.LaunchInstance(videoFormat.Width, videoFormat.Height, (int)videoFormat.FrameRate, _buffer.Write);
         _demuxer = new Demuxer(_buffer);

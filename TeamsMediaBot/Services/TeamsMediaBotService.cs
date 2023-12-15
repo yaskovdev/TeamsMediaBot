@@ -14,7 +14,7 @@ using Microsoft.Skype.Bots.Media;
 
 public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 {
-    private static readonly VideoFormat SupportedSendVideoFormat = VideoFormat.NV12_1280x720_30Fps;
+    private static readonly VideoFormat SupportedSendVideoFormat = VideoFormat.NV12_1280x720_30Fps; // TODO: try switching to H.264-encoded frames
 
     private readonly IJoinUrlParser _joinUrlParser;
     private readonly ICommunicationsClient _communicationsClient;
@@ -80,8 +80,9 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         };
         var mediaSession = _communicationsClient.CreateMediaSession(audioSocketSettings, videoSocketSettings);
         var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession);
+        var streamingSession = new StreamingSession(mediaSession, SupportedSendVideoFormat);
         var call = await _communicationsClient.Calls().AddAsync(joinParams, Guid.NewGuid());
-        _callIdToStreamingSession[call.Id] = new StreamingSession(mediaSession, SupportedSendVideoFormat);
+        _callIdToStreamingSession[call.Id] = streamingSession;
         return call;
     }
 
@@ -90,6 +91,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // TODO: dispose of the ongoing sessions here to ensure that the browser is closed
         _logger.LogInformation("Disposing, it may take some time");
         await _communicationsClient.TerminateAsync(false); // TODO: MediaPlatform initialized in SetMediaPlatformSettings prevents app shutdown otherwise
         _communicationsClient.Dispose();
