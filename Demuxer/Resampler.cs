@@ -46,6 +46,7 @@ public class Resampler : IResampler
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
             NativeResamplerApi.DeleteResampler(_resampler);
+            GC.SuppressFinalize(this);
         }
     }
 }

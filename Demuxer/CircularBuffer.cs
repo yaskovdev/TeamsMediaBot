@@ -34,11 +34,11 @@ public class CircularBuffer
         Size += size;
     }
 
-    public int Read(IntPtr data, int size)
+    public void Read(IntPtr data, int size)
     {
         if (Size == 0)
         {
-            return 0;
+            return;
         }
 
         var numberOfBytesToCopy = Math.Min(Size, size);
@@ -51,7 +51,5 @@ public class CircularBuffer
 
         _head = (_head + numberOfBytesToCopy) % _buffer.Length;
         Size -= numberOfBytesToCopy;
-
-        return numberOfBytesToCopy;
     }
 }

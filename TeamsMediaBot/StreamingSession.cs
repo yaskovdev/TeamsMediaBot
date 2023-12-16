@@ -80,6 +80,7 @@ public class StreamingSession : IAsyncDisposable
             _demuxer.Dispose();
             _resampler.Dispose();
             await _player.DisposeAsync();
+            GC.SuppressFinalize(this);
         }
     }
 

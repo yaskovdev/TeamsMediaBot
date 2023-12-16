@@ -89,6 +89,7 @@ public class BlockingCircularBuffer : IBlockingBuffer
         {
             _disposed = true;
             Monitor.PulseAll(_lock);
+            GC.SuppressFinalize(this);
         }
     }
 

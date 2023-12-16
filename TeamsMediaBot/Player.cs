@@ -35,7 +35,7 @@ public class Player : IAsyncDisposable
 
         if (Interlocked.Exchange(ref _playing, 1) == 0)
         {
-            _playerTask = Task.Run(StartPlaying);;
+            _playerTask = Task.Run(StartPlaying);
         }
         Interlocked.Increment(ref _count);
     }
@@ -44,9 +44,9 @@ public class Player : IAsyncDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            Console.WriteLine("Waiting for the player to stop");
+            Console.WriteLine("Waiting for the player to send the queues until the end and stop");
             if (_playerTask is not null) await _playerTask;
-            Console.WriteLine("Player stopped"); // TODO: also dequeue all the items and dispose of them
+            Console.WriteLine("Player stopped");
         }
     }
 
@@ -56,12 +56,9 @@ public class Player : IAsyncDisposable
         var stopwatch = Stopwatch.StartNew();
         while (true)
         {
-            try
-            {
-                Dequeue(_audioQueue, stopwatch.Elapsed);
-                Dequeue(_videoQueue, stopwatch.Elapsed);
-            }
-            catch (ObjectDisposedException)
+            Dequeue(_audioQueue, stopwatch.Elapsed);
+            Dequeue(_videoQueue, stopwatch.Elapsed);
+            if (_disposed == 1 && _audioQueue.IsEmpty && _videoQueue.IsEmpty)
             {
                 break;
             }
@@ -71,7 +68,7 @@ public class Player : IAsyncDisposable
 
     private void Dequeue(ConcurrentQueue<AbstractFrame> queue, TimeSpan time)
     {
-        if (_disposed == 1) throw new ObjectDisposedException(nameof(Player));
+        // TODO: probably no need to check that it's time to send if _disposed == 1, just send the rest right away
         while (queue.TryPeek(out var head) && head.Timestamp <= time)
         {
             if (queue.TryDequeue(out var frame))
@@ -92,9 +89,27 @@ public class Player : IAsyncDisposable
         queue?.Enqueue(frame);
     }
 
+    /// <summary>
+    /// Checking for <c>_disposed</c> and catching exceptions here would not be needed if Microsoft.Graph.Communications.Calls
+    /// could wait for the async dispose in <c>TeamsMediaBotService.OnUpdated</c> before disposing of the sockets.
+    /// </summary>
     private void Send(AbstractFrame frame)
     {
-        if (frame.Type == FrameType.Audio) _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
-        else if (frame.Type == FrameType.Video) _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
+        if (_disposed == 0)
+        {
+            try
+            {
+                if (frame.Type == FrameType.Audio) _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
+                else if (frame.Type == FrameType.Video) _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
+            }
+            catch (ObjectDisposedException)
+            {
+                frame.Dispose();
+            }
+        }
+        else
+        {
+            frame.Dispose();
+        }
     }
 }

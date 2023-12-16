@@ -15,6 +15,7 @@ demuxer::demuxer(const callback callback): initialized_(false), callback_(callba
     std::cout << "Demuxer instantiated" << "\n";
 }
 
+// TODO: should free all the FFmpeg objects properly. Same for resampler
 void demuxer::initialize()
 {
     fmt_ctx_ = avformat_alloc_context();

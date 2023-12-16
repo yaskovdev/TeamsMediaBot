@@ -34,6 +34,7 @@ public class Demuxer : IDemuxer
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
             NativeDemuxerApi.DeleteDemuxer(_demuxer);
+            GC.SuppressFinalize(this);
         }
     }
 }

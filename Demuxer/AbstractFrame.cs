@@ -25,6 +25,7 @@ public abstract class AbstractFrame : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 

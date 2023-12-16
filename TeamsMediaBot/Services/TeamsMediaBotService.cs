@@ -94,7 +94,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
             if (_callIdToStreamingSession.TryRemove(callId, out var session))
             {
                 _logger.LogInformation("Disposing of session with call ID {Id}", callId);
-                await session.DisposeAsync();
+                await session.DisposeAsync(); // TODO: the problem now is that it does not wait for this to return when called from TeamsMediaBotService.OnUpdated and disposes of the sockets...
             }
         }
     }
