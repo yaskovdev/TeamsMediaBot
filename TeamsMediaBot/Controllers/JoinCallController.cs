@@ -15,7 +15,7 @@ public class JoinCallController : ControllerBase
     }
 
     [HttpPost("/api/join-call-requests")]
-    public async Task<Dictionary<string, string>> Get([FromBody] JoinCallRequest request)
+    public async Task<Dictionary<string, string>> JoinCall([FromBody] JoinCallRequest request)
     {
         var call = await _service.JoinCall(new Uri(request.JoinUrl));
         return new Dictionary<string, string>
