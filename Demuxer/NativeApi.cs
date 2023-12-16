@@ -37,7 +37,7 @@ internal static partial class NativeResamplerApi
 
     [LibraryImport("NativeDemuxer.dll", EntryPoint = "resampler_resample_frame")]
     internal static partial IntPtr ResampleFrame(IntPtr resampler, IntPtr srcFrame, int srcLength, ref FrameMetadata dstMetadata);
-    
+
     [LibraryImport("NativeDemuxer.dll", EntryPoint = "resampler_frame_buffer_delete")]
     internal static partial void DeleteFrameBuffer(IntPtr buffer);
 

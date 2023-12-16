@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 
 public class BlockingCircularBuffer : IBlockingBuffer
 {
+    private const int EndOfFile = -1;
+
     private readonly object _lock = new();
     private readonly byte[] _buffer;
     private int _head;
@@ -28,12 +30,11 @@ public class BlockingCircularBuffer : IBlockingBuffer
 
             if (_size + packet.Length > _buffer.Length)
             {
+                if (_disposed)
+                {
+                    return;
+                }
                 Monitor.Wait(_lock);
-            }
-
-            if (_disposed)
-            {
-                return;
             }
 
             var firstPart = _buffer.Length - _tail < packet.Length ? _buffer.Length - _tail : packet.Length;
@@ -56,12 +57,11 @@ public class BlockingCircularBuffer : IBlockingBuffer
         {
             if (_size == 0)
             {
+                if (_disposed)
+                {
+                    return EndOfFile;
+                }
                 Monitor.Wait(_lock);
-            }
-
-            if (_disposed)
-            {
-                return -1;
             }
 
             var numberOfBytesToCopy = Math.Min(_size, size);
@@ -80,7 +80,9 @@ public class BlockingCircularBuffer : IBlockingBuffer
         }
     }
 
-    // TODO: probably better to call it StopAcceptingPacketsAndUnlockThreads
+    /// <summary>
+    /// It is guaranteed that once this method returns all the threads are unblocked and no more threads will be blocked.
+    /// </summary>
     public void Dispose()
     {
         lock (_lock)

@@ -49,5 +49,8 @@ class demuxer
 public:
     demuxer(callback callback);
 
+    /**
+     * \brief May return nullptr if end of stream reached.
+     */
     uint8_t* read_frame(frame_metadata* metadata);
 };

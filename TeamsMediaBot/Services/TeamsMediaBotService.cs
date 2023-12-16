@@ -51,17 +51,7 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
         _logger = logger;
     }
 
-    private async void OnUpdated(ICallCollection sender, CollectionEventArgs<ICall> e)
-    {
-        foreach (var call in e.RemovedResources)
-        {
-            if (_callIdToStreamingSession.TryRemove(call.Id, out var session))
-            {
-                _logger.LogInformation("Disposing of session with call ID {Id}", call.Id);
-                await session.DisposeAsync();
-            }
-        }
-    }
+    private async void OnUpdated(ICallCollection sender, CollectionEventArgs<ICall> e) => await DisposeOfSessions(e.RemovedResources.Select(it => it.Id));
 
     public async Task<ICall> JoinCall(Uri joinUrl)
     {
@@ -91,9 +81,21 @@ public class TeamsMediaBotService : ITeamsMediaBotService, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        // TODO: dispose of the ongoing sessions here to ensure that the browser is closed
-        _logger.LogInformation("Disposing, it may take some time");
+        await DisposeOfSessions(_callIdToStreamingSession.Keys);
+        _logger.LogInformation("Terminating Media Platform and disposing of communications client, it may take some time");
         await _communicationsClient.TerminateAsync(false); // TODO: MediaPlatform initialized in SetMediaPlatformSettings prevents app shutdown otherwise
         _communicationsClient.Dispose();
+    }
+
+    private async Task DisposeOfSessions(IEnumerable<string> callIds)
+    {
+        foreach (var callId in callIds)
+        {
+            if (_callIdToStreamingSession.TryRemove(callId, out var session))
+            {
+                _logger.LogInformation("Disposing of session with call ID {Id}", callId);
+                await session.DisposeAsync();
+            }
+        }
     }
 }

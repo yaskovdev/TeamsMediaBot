@@ -56,24 +56,21 @@ uint8_t* demuxer::read_frame(frame_metadata* metadata)
 {
     if (!initialized_)
     {
-        try
-        {
-            initialize();
-            std::cout << "Initialized demuxer" << "\n";
-            initialized_ = true;
-        }
-        catch (demuxer_exception& e)
-        {
-            std::cout << "Cannot initialize demuxer, not enough data in the buffer, send more data. The error is " << e.what() << "\n";
-            return nullptr;
-        }
+        initialize();
+        std::cout << "Initialized demuxer" << "\n";
+        initialized_ = true;
     }
 
     while (true)
     {
         if (decoder_needs_packet_)
         {
-            ASSERT_NON_NEGATIVE(av_read_frame(fmt_ctx_, pkt_), "Cannot read new packet");
+            const int read_packet_status = av_read_frame(fmt_ctx_, pkt_);
+            if (read_packet_status == AVERROR_EOF)
+            {
+                return nullptr;
+            }
+            ASSERT_NON_NEGATIVE(read_packet_status, "Cannot read new packet");
             current_stream_index_ = pkt_->stream_index;
             ASSERT_NON_NEGATIVE(avcodec_send_packet(current_context(), pkt_), "Cannot send packet to decoder");
             decoder_needs_packet_ = false;

@@ -30,21 +30,23 @@ public class StreamingSession : IAsyncDisposable
         var videoSocket = mediaSession.VideoSockets[0];
         videoSocket.VideoSendStatusChanged += OnVideoSendStatusChanged;
         _player = new Player(audioSocket, videoSocket, videoFormat);
-        _streamingTask = StartStreaming();
+        _streamingTask = StreamUntilEndOfStreamReached();
     }
 
-    private async Task StartStreaming()
+    private async Task StreamUntilEndOfStreamReached()
     {
         Console.WriteLine("Waiting for the sockets to become active");
         await Task.WhenAll(_audioSocketActive.Task, _videoSocketActive.Task);
         Console.WriteLine("Sockets are active");
         while (true)
         {
-            if (_disposed == 1)
+            var frame = _demuxer.ReadFrame();
+            if (frame.Data == IntPtr.Zero)
             {
+                Console.WriteLine("End of stream reached, stopping streaming");
                 return;
             }
-            var frame = _demuxer.ReadFrame();
+
             if (frame.Type == FrameType.Video)
             {
                 _player.Enqueue(frame);
@@ -72,28 +74,24 @@ public class StreamingSession : IAsyncDisposable
             var browser = await _launchBrowserTask;
             await browser.StopCapturing();
             await browser.DisposeAsync();
-            Console.WriteLine("Waiting for streaming to finish before disposing of the rest of the dependencies");
-            await _streamingTask;
             _buffer.Dispose();
-            _resampler.Dispose();
+            Console.WriteLine("Waiting for streaming to read the buffer until the end and exit before disposing of the rest of the dependencies");
+            await _streamingTask;
             _demuxer.Dispose();
+            _resampler.Dispose();
             await _player.DisposeAsync();
         }
     }
 
-    private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args)
-    {
-        if (args.MediaSendStatus == MediaSendStatus.Active)
-        {
-            _audioSocketActive.TrySetResult(true);
-        }
-    }
+    private void OnAudioSendStatusChanged(object? sender, AudioSendStatusChangedEventArgs args) => SetResultIfActive(args.MediaSendStatus, _audioSocketActive);
 
-    private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args)
+    private void OnVideoSendStatusChanged(object? sender, VideoSendStatusChangedEventArgs args) => SetResultIfActive(args.MediaSendStatus, _videoSocketActive);
+
+    private static void SetResultIfActive(MediaSendStatus mediaSendStatus, TaskCompletionSource<bool> source)
     {
-        if (args.MediaSendStatus == MediaSendStatus.Active)
+        if (mediaSendStatus == MediaSendStatus.Active)
         {
-            _videoSocketActive.TrySetResult(true);
+            source.TrySetResult(true);
         }
     }
 }

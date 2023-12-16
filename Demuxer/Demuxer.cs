@@ -4,6 +4,8 @@ using System.Diagnostics.CodeAnalysis;
 
 public class Demuxer : IDemuxer
 {
+    private static readonly NativeFrame EmptyFrame = new(FrameType.Audio, IntPtr.Zero, 0, TimeSpan.Zero);
+
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable", Justification = "The callback scope must be bigger than the scope of the native demuxer")]
     private readonly Callback _callback;
 
@@ -17,11 +19,14 @@ public class Demuxer : IDemuxer
         _demuxer = NativeDemuxerApi.CreateDemuxer(_callback);
     }
 
+    /// <summary>
+    /// Returns an empty frame if an end of stream was reached. 
+    /// </summary>
     public AbstractFrame ReadFrame()
     {
         var metadata = new FrameMetadata();
         var data = NativeDemuxerApi.ReadFrame(_demuxer, ref metadata);
-        return new NativeFrame(metadata.Type, data, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp)); // TODO: use the same approach with timestamps as in the resampler?
+        return data == IntPtr.Zero ? EmptyFrame : new NativeFrame(metadata.Type, data, metadata.Size, TimeSpan.FromMilliseconds(metadata.Timestamp));
     }
 
     public void Dispose()

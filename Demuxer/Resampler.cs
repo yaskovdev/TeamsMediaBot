@@ -33,6 +33,7 @@ public class Resampler : IResampler
         {
             var data = Marshal.AllocHGlobal(OutputPacketSize);
             _outputBuffer.Read(data, OutputPacketSize);
+            // TODO: should take the original timestamp into consideration to not de-synchronize from video in case video frames get dropped, say, during decoding
             var frame = new Frame(FrameType.Audio, data, OutputPacketSize, TimeSpan.FromMilliseconds(_outputCount * OutputPacketLengthMs));
             _outputCount++;
             return frame;

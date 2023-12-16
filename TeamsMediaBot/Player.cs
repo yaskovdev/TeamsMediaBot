@@ -26,11 +26,6 @@ public class Player : IAsyncDisposable
 
     public void Enqueue(AbstractFrame frame)
     {
-        if (_disposed == 1)
-        {
-            return;
-        }
-
         if (_count % 1000 == 0)
         {
             Console.WriteLine($"Audio queue size is {_audioQueue.Count}, video queue size is {_videoQueue.Count}");
