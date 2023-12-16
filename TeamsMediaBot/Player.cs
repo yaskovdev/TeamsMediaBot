@@ -47,6 +47,7 @@ public class Player : IAsyncDisposable
             Console.WriteLine("Waiting for the player to empty the queues and stop");
             if (_playerTask is not null) await _playerTask;
             Console.WriteLine("Player stopped");
+            GC.SuppressFinalize(this);
         }
     }
 

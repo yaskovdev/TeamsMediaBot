@@ -64,6 +64,20 @@ self-signed certificate.
 Open PowerShell *as admin*, go to `TeamsMediaBot\bin\x64\Debug\net7.0` (or `Release`) and
 run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 
+### Clean, Build And Run
+
+```powershell
+Get-ChildItem . -include bin,obj,x64,packages -Recurse | ForEach-Object ($_) { Remove-Item $_.FullName -Force -Recurse }
+nuget restore
+msbuild /t:NativeDemuxer:Rebuild /p:Platform=x64 /p:Configuration=Release
+msbuild /t:TeamsMediaBot:Publish /p:Configuration=Release /p:Platform=x64 /p:UseAppHost=false
+$env:ASPNETCORE_URLS="https://localhost:7105;http://localhost:5228"
+$env:ASPNETCORE_ENVIRONMENT="Local"
+cd .\TeamsMediaBot\bin\x64\Release\net7.0\publish
+.\MediaPlatformStartupScript.bat # if not yet done from this path
+dotnet .\TeamsMediaBot.dll
+```
+
 ## Running With Docker In Linux Container
 
 ```powershell
