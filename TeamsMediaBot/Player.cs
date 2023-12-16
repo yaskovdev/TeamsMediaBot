@@ -44,7 +44,7 @@ public class Player : IAsyncDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            Console.WriteLine("Waiting for the player to send the queues until the end and stop");
+            Console.WriteLine("Waiting for the player to empty the queues and stop");
             if (_playerTask is not null) await _playerTask;
             Console.WriteLine("Player stopped");
         }
@@ -68,12 +68,18 @@ public class Player : IAsyncDisposable
 
     private void Dequeue(ConcurrentQueue<AbstractFrame> queue, TimeSpan time)
     {
-        // TODO: probably no need to check that it's time to send if _disposed == 1, just send the rest right away
-        while (queue.TryPeek(out var head) && head.Timestamp <= time)
+        if (_disposed == 1)
         {
-            if (queue.TryDequeue(out var frame))
+            EmptyQueue(queue);
+        }
+        else
+        {
+            while (queue.TryPeek(out var head) && head.Timestamp <= time)
             {
-                Send(frame);
+                if (queue.TryDequeue(out var frame))
+                {
+                    Send(frame);
+                }
             }
         }
     }
@@ -90,26 +96,27 @@ public class Player : IAsyncDisposable
     }
 
     /// <summary>
-    /// Checking for <c>_disposed</c> and catching exceptions here would not be needed if Microsoft.Graph.Communications.Calls
-    /// could wait for the async dispose in <c>TeamsMediaBotService.OnUpdated</c> before disposing of the sockets.
+    /// Catching exceptions here would not be needed if Microsoft.Graph.Communications.Calls could wait
+    /// for the async dispose in <c>TeamsMediaBotService.OnUpdated</c> before disposing of the sockets.
     /// </summary>
     private void Send(AbstractFrame frame)
     {
-        if (_disposed == 0)
+        try
         {
-            try
-            {
-                if (frame.Type == FrameType.Audio) _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
-                else if (frame.Type == FrameType.Video) _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
-            }
-            catch (ObjectDisposedException)
-            {
-                frame.Dispose();
-            }
+            if (frame.Type == FrameType.Audio) _audioSocket.Send(new AudioBuffer(frame, AudioFormat.Pcm16K));
+            else if (frame.Type == FrameType.Video) _videoSocket.Send(new VideoBuffer(frame, _videoFormat));
         }
-        else
+        catch (ObjectDisposedException)
         {
             frame.Dispose();
+        }
+    }
+
+    private static void EmptyQueue(ConcurrentQueue<AbstractFrame> queue)
+    {
+        while (queue.TryDequeue(out var head))
+        {
+            head.Dispose();
         }
     }
 }
