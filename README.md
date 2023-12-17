@@ -69,8 +69,8 @@ run `.\MediaPlatformStartupScript.bat` (note the dot and the backslash).
 ```powershell
 Get-ChildItem . -include bin,obj,x64,packages -Recurse | ForEach-Object ($_) { Remove-Item $_.FullName -Force -Recurse }
 nuget restore
-msbuild /t:NativeDemuxer:Rebuild /p:Platform=x64 /p:Configuration=Release
-msbuild /t:TeamsMediaBot:Publish /p:Configuration=Release /p:Platform=x64 /p:UseAppHost=false
+msbuild /p:Configuration=Release
+msbuild /t:Publish /p:Configuration=Release /p:UseAppHost=false
 $env:ASPNETCORE_URLS="https://localhost:7105;http://localhost:5228"
 $env:ASPNETCORE_ENVIRONMENT="Local"
 cd .\TeamsMediaBot\bin\x64\Release\net7.0\publish

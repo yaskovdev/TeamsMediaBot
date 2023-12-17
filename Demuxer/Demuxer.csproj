@@ -10,7 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NativeDemuxer\NativeDemuxer.vcxproj" />
+        <!-- This project depends on NativeDemuxer, but since NativeDemuxer is a native project, the dependency
+         is reflected in the solution file. Same for those projects that depend on NativeDemuxer transitively. -->
         <Content Include="..\$(Platform)\$(Configuration)\*.dll">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>

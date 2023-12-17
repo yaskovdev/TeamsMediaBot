@@ -1,6 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamsMediaBot", "TeamsMediaBot\TeamsMediaBot.csproj", "{4371314D-1ECC-491A-9981-D2A89EC84B3B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42} = {0266CB48-3B98-4432-AB6B-ECBDAC445A42}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD29B091-48F7-47C7-9964-944621BDFACF}"
 	ProjectSection(SolutionItems) = preProject
@@ -9,14 +12,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demuxer", "Demuxer\Demuxer.csproj", "{D5014AF0-08F0-4968-A5E7-6701B3BFC108}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42} = {0266CB48-3B98-4432-AB6B-ECBDAC445A42}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeDemuxer", "NativeDemuxer\NativeDemuxer.vcxproj", "{0266CB48-3B98-4432-AB6B-ECBDAC445A42}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrowserAudioVideoCapturingService", "BrowserAudioVideoCapturingService\BrowserAudioVideoCapturingService.csproj", "{D7532225-0D02-490D-9414-376B816138A1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demuxer.Tests", "Demuxer.Tests\Demuxer.Tests.csproj", "{90CF9A69-E246-4ADF-8691-376FC9EB0B47}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DemuxerRunner", "DemuxerRunner\DemuxerRunner.csproj", "{5BAC94ED-3625-4F5B-9EDB-DBE5823E9C58}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0266CB48-3B98-4432-AB6B-ECBDAC445A42} = {0266CB48-3B98-4432-AB6B-ECBDAC445A42}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,9 +51,5 @@ Global
 		{90CF9A69-E246-4ADF-8691-376FC9EB0B47}.Debug|x64.Build.0 = Debug|x64
 		{90CF9A69-E246-4ADF-8691-376FC9EB0B47}.Release|x64.ActiveCfg = Release|x64
 		{90CF9A69-E246-4ADF-8691-376FC9EB0B47}.Release|x64.Build.0 = Release|x64
-		{5BAC94ED-3625-4F5B-9EDB-DBE5823E9C58}.Debug|x64.ActiveCfg = Debug|x64
-		{5BAC94ED-3625-4F5B-9EDB-DBE5823E9C58}.Debug|x64.Build.0 = Debug|x64
-		{5BAC94ED-3625-4F5B-9EDB-DBE5823E9C58}.Release|x64.ActiveCfg = Release|x64
-		{5BAC94ED-3625-4F5B-9EDB-DBE5823E9C58}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal
